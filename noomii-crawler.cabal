@@ -52,7 +52,7 @@ Executable noomii-crawler
     src
 
   ghc-options:
-    -prof -auto-all -caf-all -fforce-recomp
+    -auto-all -caf-all -fforce-recomp
 
   -- Packages needed in order to build this package.
   Build-depends:
@@ -61,7 +61,9 @@ Executable noomii-crawler
     containers,
     enumerator,
     http-enumerator,
+    http-types,
     mtl,
+    network,
     tagsoup
 
 
