@@ -67,10 +67,21 @@ instance Show WebPage where
           ++ show msg
           ++ "] "
 
+instance Eq WebPage where
+  wp0 == wp1 =  wpURI wp0 == wpURI wp1
+
+instance Ord WebPage where
+  wp0 `compare` wp1 = 
+      compare (getWebPageUrlString wp0)
+              (getWebPageUrlString wp1)
+
 instance Show Link where
   show (Link uri _) = "Link: " ++ show uri
 
 -------------------------------------------------------------------------------
+
+getWebPageUrlString :: WebPage -> String
+getWebPageUrlString wp = uriToString (const "") (wpURI wp) ""
 
 getFollowLinks :: URI -> WebPage -> [String]
 getFollowLinks domain = 
