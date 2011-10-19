@@ -1,17 +1,13 @@
 module Crawler.Enumerator where
 
-import Control.Monad (mapM_)
+import Control.Monad (zipWithM_)
 import Control.Monad.Trans (MonadIO(..))
 import Network.URI (parseAbsoluteURI)
-import System.IO (Handle, hPutStrLn)
-
-import qualified Data.Set as Set
+import System.IO (Handle, hPutStrLn, hPutStr)
 
 --------------------
 
-import Data.Enumerator hiding (map, mapM)
-
-import qualified Data.Enumerator.List as EL
+import Data.Enumerator hiding (map, mapM, length)
 
 --------------------
 
@@ -24,7 +20,10 @@ import Navigation.Enumerator
 data CrawlNode
   = CrawlLink String
   | CrawlWebPage WebPage
-  deriving (Show)
+
+instance Show CrawlNode where
+  show (CrawlLink url) = url
+  show (CrawlWebPage wp) = show wp
 
 instance Eq CrawlNode where
   (CrawlLink l0) == (CrawlLink l1) = l0 == l1
@@ -44,19 +43,19 @@ instance Ord CrawlNode where
 -------------------------------------------------------------------------------
 
 enumCrawler :: MonadIO m => String -> Enumerator (NavEvent CrawlNode) m b
-enumCrawler link step = Iteratee $
-    case parseAbsoluteURI link of
-      Nothing -> error $ "[error] invalid link: " ++ link
+enumCrawler link0 step = Iteratee $
+    case parseAbsoluteURI link0 of
+      Nothing -> error $ "[error] invalid link: " ++ link0
       Just uri ->
         runIteratee $ enumNavigation (\_ _ -> return 0)
                                      (requestChildren uri)
-                                     (CrawlLink link)
+                                     (CrawlLink link0)
                                      step
   where
     requestChildren domain (CrawlLink link) = do
       result <- requestWebPage link
       case result of
-        Left e -> return (CrawlLink link, [])
+        Left _ -> return (CrawlLink link, [])
         Right wp ->
           return (CrawlWebPage wp,
                   map CrawlLink $ getFollowLinks domain wp)
@@ -65,9 +64,18 @@ enumCrawler link step = Iteratee $
 debugVisit :: MonadIO m
            => Handle
            -> Enumeratee (NavEvent CrawlNode) (NavEvent CrawlNode) m b
-debugVisit handle = EL.mapM showVisit
+debugVisit handle = _debugVisit 0
   where
-    showVisit nv = do
+    _debugVisit acc step@(Continue consumer) = continue go
+      where
+        go EOF = yield step EOF
+        go stream@(Chunks xs) = Iteratee $ do
+          zipWithM_ showVisit [acc..] xs 
+          runIteratee $ consumer stream >>==
+                        _debugVisit (acc + length xs)
+    _debugVisit _ step = yield step EOF
+    showVisit i nv = do
+      liftIO . hPutStr handle $ show i ++ " "
       case nvVal nv of
         CrawlWebPage wp ->
             liftIO .
@@ -78,8 +86,11 @@ debugVisit handle = EL.mapM showVisit
         CrawlLink link ->
             liftIO .
             hPutStrLn handle $
-              "\x1B[31m- [Invalid Link] "
+              "\x1B[31m- "
               ++ link
+              ++ " (from: "
+              ++ show (maybe "root" show $ nvParent nv)
+              ++ ")"
               ++ "\x1B[0m"
       return nv
 

@@ -3,6 +3,7 @@ module Crawler.HTTP where
 
 --------------------
 
+import Control.Exception (try)
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.ByteString.Char8 ()
 import Data.Maybe (mapMaybe)
@@ -12,32 +13,24 @@ import qualified Data.ByteString as BS
 
 --------------------
 
-import Control.DeepSeq
 import Data.Enumerator (
     Iteratee(..)
-  , Enumeratee
-  , Step(..)
-  , Iteratee(..)
-  , Stream(..)
-  , (>>==)
-  , (=$)
-  , yield
-  , continue
   , run_
   )
-import Network.HTTP.Enumerator (withManager, parseUrl, httpRedirect)
+import Network.HTTP.Enumerator (
+    HttpException(..)
+  , withManager
+  , parseUrl
+  , httpRedirect
+  )
 import Network.HTTP.Types (Status(..), ResponseHeaders)
 import Text.HTML.TagSoup (
-    Tag
-  , parseTags
+    parseTags
   , canonicalizeTags
   )
-import Text.StringLike (StringLike)
 
 --------------------
 
-import qualified Data.ByteString as BS
-import qualified Data.Enumerator as E
 import qualified Data.Enumerator.List as EL
 
 --------------------
@@ -56,20 +49,31 @@ requestWebPage url = liftIO $ withManager $ \manager ->
 
       Just uri -> do
         request <- parseUrl url
-        (status, headers, body) <- run_ $ httpRedirect request
-                                          responseIt
-                                          manager
+        result <- try $ run_ $ httpRedirect request
+                                            responseIt
+                                            manager
 
-        let tags =  canonicalizeTags $ parseTags body
-        let links = mapMaybe (mkLink uri) $
-                    wholeTags "a" tags
+        case result of
+          Left (StatusCodeException code _) ->
+            return . Left $ "status code: " ++ show code
+          Left (InvalidUrlException {}) ->
+            return $ Left "invalid url format"
+          Left TooManyRedirects ->
+            return $ Left "too many redirects"
+          Left (HttpParserException msg) ->
+            return . Left $ "HTTP parsing error: " ++ msg
+
+          Right (status, headers, body) -> do
+            let tags =  canonicalizeTags $ parseTags body
+            let links = mapMaybe (mkLink uri) $
+                        wholeTags "a" tags
 
 
-        return . Right $ WebPage uri
-                                 links
-                                 tags
-                                 status
-                                 headers
+            return . Right $ WebPage uri
+                                     links
+                                     tags
+                                     status
+                                     headers
 
 
 responseIt :: Monad m
@@ -81,18 +85,9 @@ responseIt :: Monad m
                        , ResponseHeaders
                        , BS.ByteString
                        )
-responseIt status@(Status code msg) headers
+responseIt status@(Status code _) headers
   | 200 <= code && code < 300 = do
       result <- EL.consume
       return (status, headers, BS.concat result)
   | otherwise = return (status, headers, BS.empty)
-
---toTags :: Monad m => Enumeratee BS.ByteString (Tag BS.ByteString) m b
---toTags step@(Yield {}) = yield step EOF
---toTags step@(Continue consumer) = continue go
---  where
---    go (Chunks bs) = Iteratee $ do
---      let tags = parseTags $ BS.concat bs
---      runIteratee $ consumer (Chunks tags) >>== toTags
---    go EOF = yield step EOF
 

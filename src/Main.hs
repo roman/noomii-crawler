@@ -1,10 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Control.Monad (mapM_)
-import Data.Maybe (fromJust)
-import Network.URI (parseURI)
-import System.IO (IOMode(..), stdout, withFile)
+import System.IO (stdout)
 
 --------------------
 
@@ -16,9 +13,6 @@ import qualified Data.Enumerator.List as EL
 
 import Navigation.Enumerator
 import Crawler.Enumerator
-import Crawler.HTTP
-import Crawler.HTML
-import Crawler.Types
 
 -------------------------------------------------------------------------------
 
