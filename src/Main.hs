@@ -4,7 +4,7 @@ module Main where
 import Control.Monad (mapM_)
 import Data.Maybe (fromJust)
 import Network.URI (parseURI)
-import System.IO (stdout)
+import System.IO (IOMode(..), stdout, withFile)
 
 --------------------
 
@@ -24,18 +24,7 @@ import Crawler.Types
 
 main :: IO ()
 main =
-    run_ $ enumCrawler "http://www.noomii.com/" $$
-           removeVisited   =$
-           EL.isolate 100  =$
-           --debugFrontier     =$
-           --debugVisitedSet   =$
+    run_ $ enumCrawler "http://staging.noomii.com/" $$
+           removeVisited     =$
            debugVisit stdout =$
            EL.dropWhile (const True)
-    --print result
-    --let uri = fromJust $ parseURI "http://www.noomii.com"
-    --result <- requestWebPage "http://www.noomii.com"
-    --case result of
-    --  Left e -> putStrLn e
-    --  Right wp ->
-    --    mapM_ print $ getFollowLinks uri wp
-

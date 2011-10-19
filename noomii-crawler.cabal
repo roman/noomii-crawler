@@ -51,11 +51,9 @@ Executable noomii-crawler
   hs-source-dirs:
     src
 
-  --  -O2
   ghc-options:
-    -prof -rtsopts -auto-all -caf-all -fforce-recomp
+    -O2
 
-  
 
   -- Packages needed in order to build this package.
   Build-depends:

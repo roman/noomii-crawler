@@ -34,7 +34,7 @@ data WebPage
   = WebPage {
     wpURI        :: URI
   , wpLinks      :: [Link]
-  --, wpBody       :: [Tag ByteString]
+  , wpBody       :: [Tag ByteString]
   , wpStatusCode :: Status
   , wpHeaders    :: ResponseHeaders
   }
@@ -54,8 +54,7 @@ newtype WholeTag s
 -------------------------------------------------------------------------------
 
 instance Show WebPage where
-  show (WebPage uri _ status _) =
-  --show (WebPage uri _ _ status _) =
+  show (WebPage uri _ _ status _) =
       statusSymbol status
       ++ show uri
     where

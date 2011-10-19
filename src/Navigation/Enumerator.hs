@@ -59,7 +59,7 @@ enumNavigation costFn actionsFn zero =
                                   children0
             let children = Set.fromList $ zip3 childrenCosts
                                                children0
-                                               (repeat (Just node1))
+                                               (repeat (Just node))
             let frontier = frontier0 `Set.union` children
             let visited  = Set.insert node visited0
 

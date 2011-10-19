@@ -62,14 +62,14 @@ requestWebPage url = liftIO $ withManager $ \manager ->
 
         let tags =  canonicalizeTags $ parseTags body
         let links = mapMaybe (mkLink uri) $
-                    tags `deepseq` wholeTags "a" tags
+                    wholeTags "a" tags
 
 
-        return . Right $ links `deepseq` WebPage uri
-                                         links
-                                         -- tags
-                                         status
-                                         headers
+        return . Right $ WebPage uri
+                                 links
+                                 tags
+                                 status
+                                 headers
 
 
 responseIt :: Monad m
