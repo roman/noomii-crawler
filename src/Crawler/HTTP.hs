@@ -8,8 +8,11 @@ import Data.ByteString.Char8 ()
 import Data.Maybe (mapMaybe)
 import Network.URI (parseAbsoluteURI)
 
+import qualified Data.ByteString as BS
+
 --------------------
 
+import Control.DeepSeq
 import Data.Enumerator (
     Iteratee(..)
   , Enumeratee
@@ -27,6 +30,7 @@ import Network.HTTP.Types (Status(..), ResponseHeaders)
 import Text.HTML.TagSoup (
     Tag
   , parseTags
+  , canonicalizeTags
   )
 import Text.StringLike (StringLike)
 
@@ -56,15 +60,16 @@ requestWebPage url = liftIO $ withManager $ \manager ->
                                           responseIt
                                           manager
 
+        let tags =  canonicalizeTags $ parseTags body
         let links = mapMaybe (mkLink uri) $
-                    wholeTags "a" body
+                    tags `deepseq` wholeTags "a" tags
 
 
-        return . Right $ WebPage uri
-                                 links
-                                 body
-                                 status
-                                 headers
+        return . Right $ links `deepseq` WebPage uri
+                                         links
+                                         -- tags
+                                         status
+                                         headers
 
 
 responseIt :: Monad m
@@ -74,20 +79,20 @@ responseIt :: Monad m
                        m
                        ( Status
                        , ResponseHeaders
-                       , [Tag BS.ByteString]
+                       , BS.ByteString
                        )
 responseIt status@(Status code msg) headers
   | 200 <= code && code < 300 = do
-      result <- toTags =$ EL.consume
-      return (status, headers, result)
-  | otherwise = return (status, headers, [])
+      result <- EL.consume
+      return (status, headers, BS.concat result)
+  | otherwise = return (status, headers, BS.empty)
 
-toTags :: Monad m => Enumeratee BS.ByteString (Tag BS.ByteString) m b
-toTags step@(Yield {}) = yield step EOF
-toTags step@(Continue consumer) = continue go
-  where
-    go (Chunks bs) = Iteratee $ do
-      let tags = parseTags $ BS.concat bs
-      runIteratee $ consumer (Chunks tags) >>== toTags
-    go EOF = yield step EOF
+--toTags :: Monad m => Enumeratee BS.ByteString (Tag BS.ByteString) m b
+--toTags step@(Yield {}) = yield step EOF
+--toTags step@(Continue consumer) = continue go
+--  where
+--    go (Chunks bs) = Iteratee $ do
+--      let tags = parseTags $ BS.concat bs
+--      runIteratee $ consumer (Chunks tags) >>== toTags
+--    go EOF = yield step EOF
 

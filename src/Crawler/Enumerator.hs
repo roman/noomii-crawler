@@ -53,9 +53,6 @@ enumCrawler link step = Iteratee $
                                      (CrawlLink link)
                                      step
   where
-    requestChildren domain n@(CrawlWebPage wp) =
-      return (n,
-              map CrawlLink $ getFollowLinks domain wp)
     requestChildren domain (CrawlLink link) = do
       result <- requestWebPage link
       case result of
@@ -85,3 +82,4 @@ debugVisit handle = EL.mapM showVisit
               ++ link
               ++ "\x1B[0m"
       return nv
+

@@ -23,20 +23,19 @@ import Crawler.Types
 -------------------------------------------------------------------------------
 
 main :: IO ()
-main = do
-    result <- run_ $ enumCrawler "http://www.noomii.com/" $$
-           removeVisited  =$
-           EL.isolate 10  =$
+main =
+    run_ $ enumCrawler "http://www.noomii.com/" $$
+           removeVisited   =$
+           EL.isolate 100  =$
            --debugFrontier     =$
            --debugVisitedSet   =$
            debugVisit stdout =$
-           EL.consume
-    return ()
+           EL.dropWhile (const True)
     --print result
     --let uri = fromJust $ parseURI "http://www.noomii.com"
-    --result <- requestWebPage "http://www.noomii.com" 
+    --result <- requestWebPage "http://www.noomii.com"
     --case result of
     --  Left e -> putStrLn e
-    --  Right wp -> 
+    --  Right wp ->
     --    mapM_ print $ getFollowLinks uri wp
-      
+
