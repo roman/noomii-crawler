@@ -3,40 +3,48 @@
 module Crawler.Types where
 
 --------------------
+-- Standard
 
 import Data.ByteString.Char8 (ByteString, unpack, isInfixOf)
-import Data.Maybe (listToMaybe, mapMaybe)
+import Data.Maybe (listToMaybe)
+import Data.Time (NominalDiffTime)
 import Network.URI (
     URI(..)
   , URIAuth(..)
   , parseURIReference
   , nonStrictRelativeTo
-  , relativeTo
   , uriToString
   )
+import Data.Ord (comparing)
 
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString as BS
 
 --------------------
+-- Third Party
 
 import Control.DeepSeq (NFData(..))
+import Network.HTTP.Enumerator (HttpException(..))
 import Network.HTTP.Types (Status(..), ResponseHeaders)
 import Text.HTML.TagSoup (Tag(..), isTagOpenName, fromAttrib)
 
 --------------------
+-- Local
 
 import Crawler.URI
-
 
 -------------------------------------------------------------------------------
 
 data WebPage
   = WebPage {
     wpURI        :: URI
+  , wpURL        :: String
   , wpLinks      :: [Link]
   , wpBody       :: [Tag ByteString]
   , wpStatusCode :: Status
   , wpHeaders    :: ResponseHeaders
+  , wpPerf       :: Maybe NominalDiffTime
+  , wpError      :: Maybe HttpException
   }
 
 data Link
@@ -53,30 +61,42 @@ newtype WholeTag s
 
 -------------------------------------------------------------------------------
 
+showBadWebPage :: String -> String -> Status -> String
+showBadWebPage url msg status =
+    "- "
+    ++ "\x1B[31;1m["
+    ++ show (statusCode status)
+    ++ "]\x1B[0m "
+    ++ url
+    ++ " ("
+    ++ msg
+    ++ ")"
+
+showGoodWebPage :: String -> Status -> String
+showGoodWebPage url status =
+    "+ "
+    ++ "\x1B[32;1m["
+    ++ show (statusCode status)
+    ++ "]\x1B[0m "
+    ++ url
+
 instance Show WebPage where
-  show (WebPage uri _ _ status _) =
-      statusSymbol status
-      ++ show uri
-    where
-      statusSymbol (Status code msg)
-        | 200 <= code && code < 300 =
-          "+ ["
-          ++ show code
-          ++ "] "
-        | otherwise =
-          "- ["
-          ++ show code
-          ++ ": "
-          ++ show msg
-          ++ "] "
+  show (WebPage _ url _ _ status _ _ (Just e))
+    = case e of
+        InvalidUrlException _ msg -> 
+          showBadWebPage url msg status
+        TooManyRedirects          -> 
+          showBadWebPage url "too many redirects" status
+        HttpParserException _     -> 
+          showBadWebPage url "http parse error" status
+
+  show (WebPage _ url _ _ status _ _ _) = showGoodWebPage url status
 
 instance Eq WebPage where
   wp0 == wp1 =  wpURI wp0 == wpURI wp1
 
 instance Ord WebPage where
-  wp0 `compare` wp1 = 
-      compare (getWebPageUrlString wp0)
-              (getWebPageUrlString wp1)
+  compare = comparing getWebPageUrlString
 
 instance Show Link where
   show (Link uri _) = "Link: " ++ show uri
@@ -85,39 +105,58 @@ instance NFData Link where
   rnf (Link uri tag) = rnf uri `seq` rnf tag
 
 instance NFData URI where
-  rnf (URI s a p q f) = 
-      rnf s `seq` 
+  rnf (URI s a p q f) =
+      rnf s `seq`
       rnf a `seq`
-      rnf p `seq` 
+      rnf p `seq`
       rnf q `seq`
       rnf f
 
 instance NFData URIAuth where
-  rnf (URIAuth ui urn up) = 
+  rnf (URIAuth ui urn up) =
       rnf ui `seq`
       rnf urn `seq`
       rnf up
 
 instance NFData (Tag s) where
-  rnf (TagOpen str xs) = ()
-  rnf (TagClose str) = ()
-  rnf (TagText str) = ()
-  rnf (TagComment str) = ()
-  rnf (TagWarning str) = ()
-  rnf (TagPosition a b) = ()
+  rnf (TagOpen {}) = ()
+  rnf (TagClose {}) = ()
+  rnf (TagText {}) = ()
+  rnf (TagComment {}) = ()
+  rnf (TagWarning {}) = ()
+  rnf (TagPosition {}) = ()
 
 -------------------------------------------------------------------------------
+
+mkWebPage :: URI 
+          -> String 
+          -> [Link] 
+          -> [Tag ByteString] 
+          -> Status 
+          -> ResponseHeaders 
+          -> Maybe NominalDiffTime
+          -> Maybe HttpException
+          -> WebPage
+mkWebPage uri url links tags status headers perf Nothing
+  | 200 <= statusCode status && statusCode status < 300
+    = WebPage uri url links tags status headers perf Nothing
+  | otherwise
+    = WebPage uri url links tags status headers perf $ 
+        Just (StatusCodeException (statusCode status) BL.empty)
+mkWebPage uri url links tags status headers perf e
+    = WebPage uri url links tags status headers perf e
+
 
 getWebPageUrlString :: WebPage -> String
 getWebPageUrlString wp = uriToString (const "") (wpURI wp) ""
 
 getFollowLinks :: URI -> WebPage -> [String]
-getFollowLinks domain = 
+getFollowLinks domain =
     map (flip (uriToString $ const "") "") .
     filter (isSameDomain domain) .
     map linkURI .
-    filter (not . isNoFollow) . 
-    wpLinks 
+    filter (not . isNoFollow) .
+    wpLinks
 
 --------------------
 
@@ -132,17 +171,17 @@ mkLink domain wholeTag = do
 
 
     partialUri  <- parseURIReference (unpack url)
-    absoluteUri <- nonStrictRelativeTo partialUri domain 
+    absoluteUri <- nonStrictRelativeTo partialUri domain
     return $ Link absoluteUri
                   wholeTag
 
 isNoFollow :: Link -> Bool
-isNoFollow = maybe False (`isInfixOf` "nofollow") .  
+isNoFollow = maybe False (`isInfixOf` "nofollow") .
              listToMaybe .
              filter (not . BS.null) .
              map (fromAttrib "rel") .
              take 1 .
              dropWhile (not . isTagOpenName "a") .
              fromWholeTag .
-             linkTag 
+             linkTag
 

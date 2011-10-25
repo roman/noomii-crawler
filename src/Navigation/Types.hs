@@ -14,8 +14,12 @@ data NavEvent a
   , nvVisited        :: Set a
   , nvFrontier       :: Set (Integer, a, Maybe a)
   }
-  deriving (Show, Ord, Eq)
+  deriving (Ord, Eq)
 
+instance Show a => Show (NavEvent a) where
+  show = show . nvVal
+
+--------------------
 
 newtype NavNode a 
   = NavNode { fromNavNode :: (Integer, a, Maybe a) }

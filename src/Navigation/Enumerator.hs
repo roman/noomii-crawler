@@ -1,25 +1,30 @@
 module Navigation.Enumerator (
     enumNavigation
-  , removeVisited
+  , removeAlreadyVisited
   , debugFrontier
   , debugVisitedSet
+  , debugVisitNumbered
   , module Navigation.Types
   ) where
 
-import Control.Monad (liftM)
+--------------------
+-- Standard
+
+import Control.Monad (liftM, zipWithM_)
 import Control.Monad.Trans (MonadIO, liftIO)
-import Data.Set (Set)
-import System.IO (Handle, hPrint, hPutStr, hPutStrLn)
+import System.IO (Handle, hPrint, hPutStrLn)
 
 import qualified Data.Set as Set
 
 --------------------
+-- Third Party
 
-import Data.Enumerator hiding (map, mapM, repeat)
+import Data.Enumerator hiding (map, mapM, repeat, length)
 
 import qualified Data.Enumerator.List as EL
 
 --------------------
+-- Local
 
 import Navigation.Types
 
@@ -34,7 +39,6 @@ enumNavigation costFn actionsFn zero =
     go (Set.singleton (0, zero, Nothing))
        Set.empty
   where
-    go _ _ step@(Yield {}) = returnI step
     go frontier0 visited0 step@(Continue consumer) = Iteratee $
       case Set.minView frontier0 of
         Nothing -> return step
@@ -73,10 +77,35 @@ enumNavigation costFn actionsFn zero =
             runIteratee $ consumer (Chunks [event]) >>==
                           go frontier visited
 
+    go _ _ step = returnI step
 
-removeVisited :: Monad m => Enumeratee (NavEvent a) (NavEvent a) m b
-removeVisited = EL.filter (not . nvAlreadyVisited)
+--------------------
 
+removeAlreadyVisited :: Monad m => Enumeratee (NavEvent a) (NavEvent a) m b
+removeAlreadyVisited = EL.filter (not . nvAlreadyVisited)
+
+--------------------
+
+debugVisitNumbered :: (Show a, MonadIO m)
+                   => Handle
+                   -> Enumeratee (NavEvent a) (NavEvent a) m b
+debugVisitNumbered handle = helper 0
+  where
+    visitNavEvent n entry = 
+        liftIO . hPutStrLn handle $ show n ++ "| " ++ show entry
+
+    helper acc step@(Continue consumer) = continue go
+      where
+        go EOF = yield step EOF
+        go stream@(Chunks xs) = Iteratee $ do
+            zipWithM_ visitNavEvent [acc..] xs
+            runIteratee $ consumer stream >>== 
+                          helper (acc + length xs)
+
+    helper _ step = yield step EOF
+
+
+--------------------
 
 debugFrontier :: (Show a, MonadIO m)
               => Handle
@@ -91,6 +120,8 @@ debugFrontier handle = EL.mapM showFrontier
       liftIO $ mapM_ (hPrint handle)
                      (Set.toList $ nvFrontier nv)
       return nv
+
+--------------------
 
 debugVisitedSet :: (Show a, MonadIO m)
                 => Handle
