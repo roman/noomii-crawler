@@ -20,7 +20,7 @@ import Crawler.Types
 import Navigation.Enumerator
 
 -------------------------------------------------------------------------------
--- Types 
+-- Types
 
 data CrawlNode
   = CrawlLink String
@@ -50,9 +50,9 @@ instance Ord CrawlNode where
 
 -------------------------------------------------------------------------------
 
-enumCrawler :: MonadIO m 
-            => String 
-            -> String 
+enumCrawler :: MonadIO m
+            => String
+            -> String
             -> Enumerator (NavEvent CrawlNode) m b
 enumCrawler link0 regexp step = Iteratee $
     case parseAbsoluteURI link0 of
@@ -63,7 +63,8 @@ enumCrawler link0 regexp step = Iteratee $
                                      (CrawlLink link0)
                                      step
   where
-    requestChildren _ (CrawlWebPage _) = error "WTF happened here?"
+    requestChildren _ (CrawlWebPage _) =
+      error "[error] invalid state on crawler"
     requestChildren domain (CrawlLink link) = do
       result <- requestWebPage link
       case result of
@@ -74,6 +75,4 @@ enumCrawler link0 regexp step = Iteratee $
                    filter (=~ regexp) $
                    getFollowLinks domain wp)
 
-
---------------------
 

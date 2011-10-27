@@ -4,7 +4,7 @@ module Crawler.HTTP (requestWebPage) where
 --------------------
 -- Standard
 
-import Control.Exception (tryJust)
+import Control.Exception (Exception(..), try)
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.ByteString.Char8 ()
 import Data.Maybe (mapMaybe)
@@ -49,8 +49,8 @@ requestWebPage url = liftIO $ withManager $ \manager ->
 
       Nothing ->
         -- Return an Invalid UrlException
-        return . 
-        Right $ 
+        return .
+        Right $
           mkWebPage nullURI
                     url
                     []
@@ -58,12 +58,14 @@ requestWebPage url = liftIO $ withManager $ \manager ->
                     statusBadRequest
                     []
                     Nothing
-                    (Just $ InvalidUrlException url "invalid URL")
+                    (Just .
+                      toException $
+                      InvalidUrlException url "Invalid URL")
 
       Just uri -> do
         request <- parseUrl url
-        (perf, result) <- trackPerformance $ 
-                            tryJust requestErrorHandler . 
+        (perf, result) <- trackPerformance $
+                            try $
                             run_ $ httpRedirect request
                                                 responseIt
                                                 manager
@@ -96,12 +98,6 @@ requestWebPage url = liftIO $ withManager $ \manager ->
                                        (Just perf)
                                        Nothing
 
-
-requestErrorHandler :: HttpException -> Maybe HttpException
-requestErrorHandler e@(InvalidUrlException {}) = Just e
-requestErrorHandler e@TooManyRedirects = Just e 
-requestErrorHandler e@(HttpParserException {}) = Just e
-requestErrorHandler _ = Nothing
 
 responseIt :: Monad m
            => Status

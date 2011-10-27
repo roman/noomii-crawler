@@ -81,7 +81,8 @@ enumNavigation costFn actionsFn zero =
 
 --------------------
 
-removeAlreadyVisited :: Monad m => Enumeratee (NavEvent a) (NavEvent a) m b
+removeAlreadyVisited :: Monad m
+                     => Enumeratee (NavEvent a) (NavEvent a) m b
 removeAlreadyVisited = EL.filter (not . nvAlreadyVisited)
 
 --------------------
@@ -91,7 +92,7 @@ debugVisitNumbered :: (Show a, MonadIO m)
                    -> Enumeratee (NavEvent a) (NavEvent a) m b
 debugVisitNumbered handle = helper 0
   where
-    visitNavEvent n entry = 
+    visitNavEvent n entry =
         liftIO . hPutStrLn handle $ show n ++ "| " ++ show entry
 
     helper acc step@(Continue consumer) = continue go
@@ -99,7 +100,7 @@ debugVisitNumbered handle = helper 0
         go EOF = yield step EOF
         go stream@(Chunks xs) = Iteratee $ do
             zipWithM_ visitNavEvent [acc..] xs
-            runIteratee $ consumer stream >>== 
+            runIteratee $ consumer stream >>==
                           helper (acc + length xs)
 
     helper _ step = yield step EOF
@@ -113,9 +114,9 @@ debugFrontier :: (Show a, MonadIO m)
 debugFrontier handle = EL.mapM showFrontier
   where
     showFrontier nv = do
-      liftIO $ hPutStrLn handle $ 
-                "======= frontier [" 
-                ++ show (nvVal nv) 
+      liftIO $ hPutStrLn handle $
+                "======= frontier ["
+                ++ show nv
                 ++ "]"
       liftIO $ mapM_ (hPrint handle)
                      (Set.toList $ nvFrontier nv)
@@ -129,11 +130,11 @@ debugVisitedSet :: (Show a, MonadIO m)
 debugVisitedSet handle = EL.mapM showVisited
   where
     showVisited nv = do
-      liftIO $ hPutStrLn handle $ 
-                "======= visited [" 
-                ++ show (nvVal nv) 
+      liftIO $ hPutStrLn handle $
+                "======= visited ["
+                ++ show nv
                 ++ "]"
-      liftIO $ mapM_ (hPrint handle) 
+      liftIO $ mapM_ (hPrint handle)
                      (Set.toList $ nvVisited nv)
       return nv
 

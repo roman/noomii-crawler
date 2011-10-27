@@ -26,6 +26,5 @@ main =
       enumCrawler "http://staging.noomii.com/" 
                   "https?://.*\\.noomii\\.com/.*" $$
       removeAlreadyVisited      =$
-      EL.isolate 30             =$
       debugVisitNumbered stdout =$
       EL.dropWhile (const True)
