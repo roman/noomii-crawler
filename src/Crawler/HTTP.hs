@@ -60,7 +60,7 @@ requestWebPage url = liftIO $ withManager $ \manager ->
                     Nothing
                     (Just .
                       toException $
-                      InvalidUrlException url "Invalid URL")
+                      InvalidUrlException url "invalid URL")
 
       Just uri -> do
         request <- parseUrl url
