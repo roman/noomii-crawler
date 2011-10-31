@@ -60,15 +60,18 @@ Executable noomii-crawler
     base,
     bytestring,
     containers,
-    deepseq,
+    data-lens,
+    data-lens-template,
     enumerator,
     http-enumerator,
     http-types,
     mtl,
     network,
+    old-locale,
     regex-pcre,
     tagsoup,
-    time
+    time,
+    zlib
 
 
   -- Modules not exported by this package.
