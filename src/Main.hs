@@ -1,30 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
---------------------
-
-import System.IO (stdout)
-
---------------------
--- Third Party
-
-import Data.Enumerator (run_, ($$), (=$))
-
-import qualified Data.Enumerator.List as EL
-
---------------------
--- 
-
-import Navigation.Enumerator
-import Crawler.Enumerator
+import System.IO (IOMode(WriteMode), withFile)
+import Noomii.Crawler (crawlNoomii, printStats)
 
 -------------------------------------------------------------------------------
 
 main :: IO ()
-main =
-    run_ $ 
-      enumCrawler "http://staging.noomii.com/" 
-                  "https?://.*\\.noomii\\.com/.*" $$
-      removeAlreadyVisited      =$
-      debugVisitNumbered stdout =$
-      EL.dropWhile (const True)
+main = do
+    state <- crawlNoomii "staging"
+    withFile "out/stats.txt" WriteMode $ flip printStats state
+    putStrLn "Done."
