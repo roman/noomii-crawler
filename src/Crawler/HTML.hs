@@ -1,16 +1,27 @@
 module Crawler.HTML where
 
+import Data.Maybe (mapMaybe)
+
 --------------------
 
 import Text.StringLike (StringLike)
-import Text.HTML.TagSoup (Tag, isTagOpenName, isTagCloseName)
+import Text.HTML.TagSoup (
+    Tag
+  , isTagOpenName
+  , isTagCloseName
+  , maybeTagText
+  )
 
 --------------------
 
 import Crawler.Types
 
-
 -------------------------------------------------------------------------------
+
+getTextFromWholeTag :: StringLike s
+                    => WholeTag s
+                    -> [s]
+getTextFromWholeTag (WholeTag s) = mapMaybe maybeTagText s
 
 wholeTags :: (StringLike s) => s -> [Tag s] -> [WholeTag s]
 wholeTags name tags = go False [] tags
