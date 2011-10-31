@@ -52,7 +52,7 @@ Executable noomii-crawler
     src
 
   ghc-options:
-    -O2 -Wall
+    -O3 -Wall
 
 
   -- Packages needed in order to build this package.
