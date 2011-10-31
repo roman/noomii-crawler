@@ -9,5 +9,5 @@ import Noomii.Crawler (crawlNoomii, printStats)
 main :: IO ()
 main = do
     state <- crawlNoomii "staging"
-    withFile "out/stats.txt" WriteMode $ flip printStats state
+    withFile "log/stats.txt" WriteMode $ flip printStats state
     putStrLn "Done."
