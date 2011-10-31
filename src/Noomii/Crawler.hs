@@ -5,8 +5,6 @@ module Noomii.Crawler where
 
 --------------------
 import Prelude hiding ((.))
-import Control.Monad (forM_)
-import Control.Monad.Trans (MonadIO(..))
 import Codec.Compression.GZip (compress)
 import Data.ByteString.Char8 (ByteString, unpack)
 import Data.ByteString.Lazy (toChunks)
@@ -15,14 +13,35 @@ import Data.Maybe (isNothing, listToMaybe)
 import Data.Monoid (Monoid(..))
 import Data.Time.Clock (NominalDiffTime)
 import Control.Category ((.))
-import Control.Monad.State (StateT, execStateT, modify)
-import System.IO (IOMode(WriteMode), Handle, stdout, withFile, hPutStrLn)
+import Control.Monad (forM_)
+import Control.Monad.State.Strict (MonadState(..), StateT, execStateT)
+import Control.Monad.Trans (MonadIO(..))
+import System.IO (
+    IOMode(WriteMode)
+  , Handle
+  , stdout
+  , withFile
+  , hPutStrLn
+  , hPrint
+  , openFile
+  , hClose
+  )
 
 import qualified Data.ByteString as BS
 import qualified Data.Map as Map
 
 --------------------
-import Data.Enumerator (($$), (=$), run_)
+import Data.Enumerator (
+    Iteratee(..)
+  , Enumeratee
+  , Step(..)
+  , Stream(..)
+  , continue
+  , (>>==)
+  , ($$)
+  , (=$)
+  , run_
+  )
 import Data.Lens.Common (getL, modL)
 import Data.Lens.Template (makeLenses)
 
@@ -52,9 +71,9 @@ instance Monoid MinPerformance where
   mempty = MinPerformance (Nothing, "")
   mappend p1@(MinPerformance (t1, _))
           p2@(MinPerformance (t2, _))
-    | isNothing t1  = p2
+    | isNothing t1 = p2
     | isNothing t2 = p1
-    | otherwise = min p1 p2
+    | otherwise    = min p1 p2
 
 --------------------
 
@@ -64,8 +83,10 @@ newtype MaxPerformance
   }
   deriving (Show, Eq, Ord)
 
+----------
+
 instance Monoid MaxPerformance where
-  mempty = MaxPerformance (Nothing, "")
+  mempty  = MaxPerformance (Nothing, "")
   mappend = max
 
 --------------------
@@ -77,6 +98,10 @@ data PerformanceStat
   }
   deriving (Show)
 
+makeLenses [''PerformanceStat]
+
+----------
+
 instance Monoid PerformanceStat where
   mempty = PerformanceStat mempty mempty
   mappend (PerformanceStat min1 max1)
@@ -84,7 +109,6 @@ instance Monoid PerformanceStat where
       = PerformanceStat (min1 `mappend` min2)
                         (max1 `mappend` max2)
 
-makeLenses [''PerformanceStat]
 
 --------------------
 
@@ -96,6 +120,10 @@ data NoomiiState
   }
   deriving (Show)
 
+makeLenses [''NoomiiState]
+
+----------
+
 instance Monoid NoomiiState where
   mempty = NoomiiState mempty mempty mempty
   mappend (NoomiiState a1 b1 c1)
@@ -104,7 +132,6 @@ instance Monoid NoomiiState where
                     (b1 `mappend` b2)
                     (c1 `mappend` c2)
 
-makeLenses [''NoomiiState]
 
 --------------------
 
@@ -112,19 +139,14 @@ newtype NoomiiMonad m a
   = NoomiiMonad {
     fromNoomiiMonad :: StateT NoomiiState m a
   }
-  deriving (Monad)
-
-----------
-
-instance MonadIO m => MonadIO (NoomiiMonad m) where
-  liftIO = NoomiiMonad . liftIO
+  deriving (Monad, MonadIO, MonadState NoomiiState)
 
 ----------
 
 instance Monad m => StatsTrackerMonad (NoomiiMonad m) where
   trackPerformance wp = NoomiiMonad $
-      modify $ modL performanceStats
-                    (mappend perfStat)
+      strictModify $ modL performanceStats
+                          (`mappend` perfStat)
     where
       perfPair = (wpPerf wp, wpURL wp)
       perfStat = PerformanceStat (MinPerformance perfPair)
@@ -137,15 +159,15 @@ instance Monad m => MetaTrackerMonad (NoomiiMonad m) where
       case metaText of
         Nothing -> return ()
         Just meta ->
-          modify $ modL metaMap
-                        (Map.alter alterFn meta)
+          strictModify $ modL metaMap
+                              (strictAlter alterFn meta)
     where
       metaText = listToMaybe $
                  concatMap getTextFromWholeTag $
                  take 1 $
                  wholeTags "meta" (wpBody wp)
       alterFn Nothing = Just [wpURL wp]
-      alterFn val = ([wpURL wp] ++) `fmap` val
+      alterFn val = (wpURL wp :) `fmap` val
 
 ----------
 
@@ -154,15 +176,15 @@ instance Monad m => TitleTrackerMonad (NoomiiMonad m) where
       case titleText of
         Nothing -> return ()
         Just title ->
-          modify $ modL titleMap
-                        (Map.alter alterFn title)
+          strictModify $ modL titleMap
+                              (strictAlter alterFn title)
     where
       titleText = listToMaybe $
                   concatMap getTextFromWholeTag $
                   take 1 $
                   wholeTags "title" (wpBody wp)
       alterFn Nothing = Just [wpURL wp]
-      alterFn val = ([wpURL wp] ++) `fmap` val
+      alterFn val = (wpURL wp :) `fmap` val
 
 ----------
 
@@ -201,7 +223,7 @@ printStats handle state = do
       forM_ (Map.toList repeatedTitles) $ \(title, urls) -> do
         hPutStrLn handle "Title:"
         hPutStrLn handle (unpack title)
-        forM_ urls $ \(url) -> 
+        forM_ urls $ \(url) ->
           hPutStrLn handle $ "- " ++ url
         hPutStrLn handle "---"
 
@@ -209,28 +231,63 @@ printStats handle state = do
       hPutStrLn handle "Webpages with repeated meta:"
       hPutStrLn handle ""
       forM_ (Map.toList repeatedMeta) $ \(meta, urls) -> do
-        hPutStrLn handle "Meta:" 
+        hPutStrLn handle "Meta:"
         hPutStrLn handle (unpack meta)
-        forM_ urls $ \(url) -> 
+        forM_ urls $ \(url) ->
           hPutStrLn handle $ "- " ++ url
         hPutStrLn handle "---"
+
+--------------------
+
+strictModify :: MonadState s m => (s -> s) -> m ()
+strictModify fn = do
+  s <- get
+  let s' = fn s
+  s' `seq` put s'
+
+--------------------
+
+strictAlter :: (Ord k) => (Maybe a -> Maybe a) -> k -> Map k a -> Map k a
+strictAlter fn k m =
+  case fn (Map.lookup k m) of
+    Just result -> result `seq` Map.insert k result m
+    Nothing     -> m
+
+--------------------
+
+evaluateState :: (MonadIO m, MonadState s m, Show s)
+              => Enumeratee a a m b
+evaluateState step0 = do
+    handle <- liftIO $ openFile "/dev/null" WriteMode
+    helper handle step0
+  where
+    helper handle (Continue consumer) = Iteratee $ do
+        get >>= liftIO . hPrint handle
+        runIteratee $ continue go
+      where
+        go stream = consumer stream >>== helper handle
+    helper handle step = Iteratee $ do
+        liftIO $ hClose handle
+        return $ Yield step EOF
+
 
 --------------------
 
 crawlNoomii :: MonadIO m => String -> m NoomiiState
 crawlNoomii env =
     liftIO $
-    withFile "out/sitemap.xml.gz" WriteMode $ \handle ->
+    withFile "log/sitemap.xml.gz" WriteMode $ \handle ->
       execNoomiiMonad $
         run_ $
           enumCrawler domain regexp     $$
           removeAlreadyVisited          =$
-          EL.isolate 500                =$
+          EL.isolate 200                =$
           debugVisitNumbered stdout     =$
           removeBrokenWebPages          =$
           trackPerformanceStats         =$
-          --trackRepeatedMeta             =$
-          --trackRepeatedTitles           =$
+          trackRepeatedMeta             =$
+          trackRepeatedTitles           =$
+          evaluateState                 =$
           generateSitemap               =$
           EL.map compress               =$
           EL.map (BS.concat . toChunks) =$

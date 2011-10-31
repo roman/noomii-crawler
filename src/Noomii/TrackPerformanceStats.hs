@@ -16,16 +16,16 @@ class Monad m => StatsTrackerMonad m where
 
 -------------------------------------------------------------------------------
 
-trackPerformanceStats :: StatsTrackerMonad m 
-                      => Enumeratee (NavEvent CrawlNode) 
-                                    (NavEvent CrawlNode) 
-                                    m 
+trackPerformanceStats :: StatsTrackerMonad m
+                      => Enumeratee (NavEvent CrawlNode)
+                                    (NavEvent CrawlNode)
+                                    m
                                     b
 trackPerformanceStats step@(Continue consumer) = continue go
   where
-    go stream@(Chunks xs) = Iteratee $ do 
-      mapM_ (fn . nvVal) xs 
-      runIteratee $ consumer stream >>== 
+    go stream@(Chunks xs) = Iteratee $ do
+      mapM_ (fn . nvVal) xs
+      runIteratee $ consumer stream >>==
                     trackPerformanceStats
     go EOF = yield step EOF
     fn (CrawlWebPage wp) = trackPerformance wp
