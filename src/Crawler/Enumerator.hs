@@ -4,6 +4,7 @@ module Crawler.Enumerator where
 -- Standard
 
 import Control.Monad.Trans (MonadIO(..))
+import Data.Maybe (isNothing)
 import Network.URI (parseAbsoluteURI)
 import Text.Regex.PCRE ((=~))
 
@@ -11,6 +12,8 @@ import Text.Regex.PCRE ((=~))
 -- Third Party
 
 import Data.Enumerator hiding (filter, map, mapM, length)
+
+import qualified Data.Enumerator.List as EL
 
 --------------------
 -- Local
@@ -33,11 +36,15 @@ instance Show CrawlNode where
   show (CrawlLink url) = url
   show (CrawlWebPage wp) = show wp
 
+----------
+
 instance Eq CrawlNode where
   (CrawlLink l0) == (CrawlLink l1) = l0 == l1
   (CrawlWebPage wp0) == (CrawlWebPage wp1) = wp0 == wp1
   (CrawlLink l) == (CrawlWebPage wp) = l == getWebPageUrlString wp
   a == b = b == a
+
+----------
 
 instance Ord CrawlNode where
   compare (CrawlLink s0) (CrawlLink s1) =
@@ -75,4 +82,15 @@ enumCrawler link0 regexp step = Iteratee $
                    filter (=~ regexp) $
                    getFollowLinks domain wp)
 
+
+--------------------
+
+removeBrokenWebPages :: Monad m => Enumeratee (NavEvent CrawlNode)
+                                              (NavEvent CrawlNode)
+                                              m
+                                              b
+removeBrokenWebPages = EL.filter (notBroken . nvVal)
+  where
+    notBroken (CrawlWebPage wp) = isNothing $ wpError wp
+    notBroken _ = False
 
