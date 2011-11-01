@@ -281,7 +281,6 @@ crawlNoomii env =
         run_ $
           enumCrawler domain regexp     $$
           removeAlreadyVisited          =$
-          EL.isolate 200                =$
           debugVisitNumbered stdout     =$
           removeBrokenWebPages          =$
           trackPerformanceStats         =$
