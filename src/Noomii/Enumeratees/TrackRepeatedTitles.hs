@@ -1,4 +1,4 @@
-module Noomii.TrackRepeatedTitles where
+module Noomii.Enumeratees.TrackRepeatedTitles where
 
 --------------------
 import Data.Enumerator

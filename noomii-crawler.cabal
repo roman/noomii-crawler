@@ -63,6 +63,7 @@ Executable noomii-crawler
     data-lens,
     data-lens-template,
     enumerator,
+    HaskellNet,
     http-enumerator,
     http-types,
     mtl,
@@ -70,6 +71,7 @@ Executable noomii-crawler
     old-locale,
     regex-pcre,
     tagsoup,
+    text,
     time,
     zlib
 

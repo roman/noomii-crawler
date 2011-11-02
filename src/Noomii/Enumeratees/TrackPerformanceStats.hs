@@ -1,4 +1,4 @@
-module Noomii.TrackPerformanceStats where
+module Noomii.Enumeratees.TrackPerformanceStats where
 
 --------------------
 import Data.Enumerator

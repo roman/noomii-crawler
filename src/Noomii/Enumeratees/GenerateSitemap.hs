@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Noomii.GenerateSitemap (generateSitemap) where
+module Noomii.Enumeratees.GenerateSitemap (generateSitemap) where
 
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.ByteString.Lazy.Char8 (ByteString)

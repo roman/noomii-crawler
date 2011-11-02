@@ -1,9 +1,11 @@
-module Noomii.TrackRepeatedMeta where
+module Noomii.Enumeratees.TrackRepeatedMeta where
 
---------------------
+----------
+
 import Data.Enumerator
 
---------------------
+----------
+
 import Crawler.Enumerator
 import Crawler.Types
 import Navigation.Types
