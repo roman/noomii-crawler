@@ -43,7 +43,6 @@ crawlNoomii env =
           removeAlreadyVisited          =$
           debugVisitNumbered stdout     =$
           removeBrokenWebPages          =$
-          EL.isolate 20                 =$
           trackPerformanceStats         =$
           trackRepeatedMeta             =$
           trackRepeatedTitles           =$
