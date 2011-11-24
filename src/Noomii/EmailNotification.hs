@@ -90,8 +90,8 @@ sendEmailWithStats user pass site state =
       putStrLn "* Authenticating"
       sendCommand smtp (AUTH LOGIN user pass) >>= print
       putStrLn "* Sending Email"
-      sendMimeMail "roman@noomii.com"
-                   "roman@noomii.com"
+      sendMimeMail "admin@noomii.com"
+                   "admin@noomii.com"
                    "Crawl Run Successful" 
                    (buildCrawlSummary state)
                    (buildCrawlSummary state)
