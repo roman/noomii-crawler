@@ -58,12 +58,14 @@ Executable noomii-crawler
   -- Packages needed in order to build this package.
   Build-depends:
     base,
+    blaze-builder,
     bytestring,
     containers,
     data-lens,
     data-lens-template,
     enumerator,
     HaskellNet,
+    heist,
     http-enumerator,
     http-types,
     mtl,
@@ -73,6 +75,7 @@ Executable noomii-crawler
     tagsoup,
     text,
     time,
+    xmlhtml,
     zlib
 
 

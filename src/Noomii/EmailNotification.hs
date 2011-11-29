@@ -87,7 +87,7 @@ sendEmailWithStats :: String -> String -> String -> NoomiiState -> IO ()
 sendEmailWithStats user pass site state = 
     doSMTP site $ \smtp -> do
       T.putStrLn $ T.toStrict $ buildCrawlSummary state
-      putStrLn "* Authenticating"
+      putStrLn "* Authenticating SMTP"
       sendCommand smtp (AUTH LOGIN user pass) >>= print
       putStrLn "* Sending Email"
       sendMimeMail "admin@noomii.com"
