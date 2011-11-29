@@ -1,11 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Noomii.SummaryRenderer where
+module Noomii.SummaryRenderer (renderSummary) where
 
 import Prelude hiding ((.))
 import Control.Arrow ((***))
 import Control.Category ((.))
-import Data.ByteString (ByteString)
-import Data.Map (Map)
 
 import qualified Data.ByteString.Char8 as B
 import qualified Data.Map as Map
@@ -13,11 +11,12 @@ import qualified Data.Map as Map
 --------------------
 
 import Blaze.ByteString.Builder (toByteString)
-import Data.Lens.Common (getL)
+import Data.Lens.Common (Lens, getL)
 import Data.Text (Text)
 import Text.Templating.Heist
 
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 
 --------------------
 
@@ -25,77 +24,92 @@ import Noomii.Types
 
 -------------------------------------------------------------------------------
 
+-- Renders with Pretty instance
+prettySplice :: (Monad m, Pretty p) => p -> Splice m
+prettySplice = textSplice . T.pack . prettyShow
+
+--------------------
+
+perfSplice :: (Pretty p, Monad m)
+           => Lens PerformanceStat p
+           -> NoomiiState
+           -> Splice m
+perfSplice lens =
+    prettySplice .
+    getL (lens . performanceStats)
+
+minPerfSplice, maxPerfSplice ::
+  Monad m => NoomiiState -> Splice m
+minPerfSplice = perfSplice minPerformance
+maxPerfSplice = perfSplice maxPerformance
+
+--------------------
+
+-- Renders a List of Urls
 urlListSplice :: Monad m => [Text] -> Splice m
 urlListSplice = mapSplices urlSplice
 
 --------------------
 
+-- Renders an URL using the url_item partial
 urlSplice :: Monad m => Text -> Splice m
 urlSplice url = do
     result <- callTemplate "url_item" [ ("urlTarget", url)
                                       , ("urlText", url)
                                       ]
     case result of
-      Just tmpl -> return tmpl
+      Just tags -> return tags
       Nothing -> error "Error rendering url_item"
 
 --------------------
 
+-- Renders a list of urls that have the same title
 repeatedTitleSplice :: Monad m
                     => Text
                     -> [Text]
                     -> Splice m
-repeatedTitleSplice title urls = 
-    localTS bindedTS $ do
+repeatedTitleSplice title urls =
+    localTS bindSplices' $ do
       result <- callTemplate "pages_with_title" []
       case result of
-        Just tags -> return tags 
+        Just tags -> return tags
         Nothing -> error "Check the title of the template"
   where
-    bindedTS = bindSplices [("pageTitle", textSplice title),
-                            ("urlList", urlListSplice urls)]
+    bindSplices' = bindSplices [("pageTitle", textSplice title),
+                                ("urlList", urlListSplice urls)]
 
 --------------------
 
-repeatedTitlesSplice :: Monad m 
-                     => Map ByteString [String] 
+-- Renders several list of urls that have the same title
+repeatedTitlesSplice :: Monad m
+                     => [(Text, [Text])]
                      -> Splice m
 repeatedTitlesSplice =
-    -- Create a big Splice with the tuples
-    -- (Title, [URL])
-    mapSplices (uncurry repeatedTitleSplice) .
-    -- Transform the Title and Urls to Text
-    map ((T.pack . B.unpack) *** (map T.pack)) .
-    Map.toList
+    mapSplices (uncurry repeatedTitleSplice)
 
 --------------------
 
-renderSummary :: NoomiiState -> IO ByteString
-renderSummary st = do
+renderSummary :: NoomiiState -> IO Text
+renderSummary noomiiState = do
     ets <- loadTemplates "templates" $
            bindSplices splices
                        emptyTemplateState
     let ts = either error id ets
-    b <- renderTemplate ts "summary"
-    return $ maybe "wtf" (toByteString . fst) b
+    renderResult <- renderTemplate ts "summary"
+    return $ maybe "ERROR: Template summary not found"
+                   (T.decodeUtf8 .
+                    toByteString .
+                    fst)
+                   renderResult
   where
-    titles = getL titleMap st
-    emptyTitleUrls = maybe [] (map T.pack) $ Map.lookup "" titles
-    titlesWithoutEmpty = Map.delete "" titles 
-    (minperf, urlmin) = fromMinPerformance $ 
-                        getL (minPerformance . performanceStats)
-                             st
-    (maxperf, urlmax) = fromMaxPerformance $ 
-                        getL (maxPerformance . performanceStats)
-                             st
-    splices = [("pagesWithRepeatedTitles", 
-                  repeatedTitlesSplice titlesWithoutEmpty),
-               ("noTitlePages", urlListSplice emptyTitleUrls),
-               ("minResponseTime", 
-                 textSplice $ T.pack $ urlmin ++ "(" ++ show minperf ++ ")"),
-               ("maxResponseTime", 
-                 textSplice $ T.pack $ urlmax ++ "(" ++ show maxperf ++ ")")]
-                
-  
-
+    (noTitleUrls, titles) = splitNoTitleUrls noomiiState
+    textNoTitleUrls = map T.pack noTitleUrls
+    textTitles = map ((T.pack . B.unpack) *** (map T.pack)) $
+                 Map.toList $
+                 Map.filter ((> 1) . length) titles
+    splices = [("pagesWithRepeatedTitles",
+                repeatedTitlesSplice textTitles),
+               ("noTitlePages", urlListSplice textNoTitleUrls),
+               ("minResponseTime", minPerfSplice noomiiState),
+               ("maxResponseTime", maxPerfSplice noomiiState)]
 

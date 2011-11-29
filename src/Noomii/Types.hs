@@ -1,18 +1,23 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Noomii.Types where
 
 ----------
 
 import Data.ByteString.Char8 (ByteString)
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing, fromMaybe)
 import Data.Map (Map)
 import Data.Monoid (Monoid(..))
 import Data.Time.Clock (NominalDiffTime)
 
+import qualified Data.Map as Map
 ----------
 
 import Data.Lens.Template (makeLenses)
+import Data.Lens.Common (getL)
 
+class Pretty a where
+  prettyShow :: a -> String
 
 -------------------------------------------------------------------------------
 
@@ -32,6 +37,12 @@ instance Monoid MinPerformance where
     | isNothing t2 = p1
     | otherwise    = min p1 p2
 
+instance Pretty MinPerformance where
+  prettyShow (MinPerformance (Nothing, url)) =
+      url ++ " (No performance available)"
+  prettyShow (MinPerformance (Just perf, url)) =
+      url ++ " (" ++ show perf ++ ")"
+
 -------------------------------------------------------------------------------
 
 newtype MaxPerformance
@@ -45,6 +56,12 @@ newtype MaxPerformance
 instance Monoid MaxPerformance where
   mempty  = MaxPerformance (Nothing, "")
   mappend = max
+
+instance Pretty MaxPerformance where
+  prettyShow (MaxPerformance (Nothing, url)) =
+      url ++ " (No performance available)"
+  prettyShow (MaxPerformance (Just perf, url)) =
+      url ++ " (" ++ show perf ++ ")"
 
 -------------------------------------------------------------------------------
 
@@ -89,4 +106,16 @@ instance Monoid NoomiiState where
                     (b1 `mappend` b2)
                     (c1 `mappend` c2)
 
+--------------------
+
+splitNoTitleUrls :: NoomiiState
+                 -> ([String], Map ByteString [String])
+splitNoTitleUrls noomiiState =
+    fromMaybe ([], titles) $ do
+      noTitleUrl <- mNoTitleUrl
+      return (noTitleUrl, withoutNoTitle)
+  where
+    titles = getL titleMap noomiiState
+    mNoTitleUrl = Map.lookup "" $ titles
+    withoutNoTitle = Map.delete "" $ titles
 
