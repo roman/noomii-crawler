@@ -15,6 +15,13 @@
   </ul>
 </div>
 
+<div class="pages-with-no-meta-description">
+  <h3>Pages with no meta description</h3>
+  <ul>
+    <noMetaPages/>
+  </ul>
+</div>
+
 <div class="pages-with-repeated-meta-description">
   <h3>Pages with repeated meta descriptions</h3>
   <pagesWithRepeatedMeta/>
