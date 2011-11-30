@@ -73,19 +73,46 @@ repeatedTitleSplice title urls =
       result <- callTemplate "pages_with_title" []
       case result of
         Just tags -> return tags
-        Nothing -> error "Check the title of the template"
+        Nothing -> error "Check the name of the template"
   where
     bindSplices' = bindSplices [("pageTitle", textSplice title),
                                 ("urlList", urlListSplice urls)]
 
 --------------------
 
+-- Renders a list of urls that have the same meta desc
+repeatedMetaSplice :: Monad m
+                    => Text
+                    -> [Text]
+                    -> Splice m
+repeatedMetaSplice desc urls =
+    localTS bindSplices' $ do
+      result <- callTemplate "pages_with_meta" []
+      case result of
+        Just tags -> return tags
+        Nothing -> error "Check the name of the template"
+  where
+    bindSplices' =
+      bindSplices [("pageMetaDescription", textSplice desc),
+                   ("urlList", urlListSplice urls)]
+
+
+--------------------
+
 -- Renders several list of urls that have the same title
-repeatedTitlesSplice :: Monad m
+repeatedTitleListSplice :: Monad m
                      => [(Text, [Text])]
                      -> Splice m
-repeatedTitlesSplice =
+repeatedTitleListSplice =
     mapSplices (uncurry repeatedTitleSplice)
+
+--------------------
+
+repeatedMetaListSplice :: Monad m
+                     => [(Text, [Text])]
+                     -> Splice m
+repeatedMetaListSplice =
+    mapSplices (uncurry repeatedMetaSplice)
 
 --------------------
 
@@ -103,13 +130,25 @@ renderSummary noomiiState = do
                    renderResult
   where
     (noTitleUrls, titles) = splitNoTitleUrls noomiiState
+    (noMetaUrls, meta) = splitNoMetaUrls noomiiState
+
     textNoTitleUrls = map T.pack noTitleUrls
+    textNoMetaUrls = map T.pack noMetaUrls
+
+    textMeta = map ((T.pack . B.unpack) *** (map T.pack)) $
+               Map.toList $
+               Map.filter ((> 1) . length) meta
+
     textTitles = map ((T.pack . B.unpack) *** (map T.pack)) $
                  Map.toList $
                  Map.filter ((> 1) . length) titles
+
     splices = [("pagesWithRepeatedTitles",
-                repeatedTitlesSplice textTitles),
+                repeatedTitleListSplice textTitles),
+               ("pagesWithRepeatedMeta",
+                repeatedMetaListSplice textMeta),
                ("noTitlePages", urlListSplice textNoTitleUrls),
+               ("noMetaPages", urlListSplice textNoMetaUrls),
                ("minResponseTime", minPerfSplice noomiiState),
                ("maxResponseTime", maxPerfSplice noomiiState)]
 

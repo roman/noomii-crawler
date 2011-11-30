@@ -15,6 +15,11 @@
   </ul>
 </div>
 
+<div class="pages-with-repeated-meta-description">
+  <h3>Pages with repeated meta descriptions</h3>
+  <pagesWithRepeatedMeta/>
+</div>
+
 <div class="pages-with-repeated-titles">
   <h3>Pages with repeated titles</h3>
   <pagesWithRepeatedTitles/>

@@ -119,3 +119,16 @@ splitNoTitleUrls noomiiState =
     mNoTitleUrl = Map.lookup "" $ titles
     withoutNoTitle = Map.delete "" $ titles
 
+--------------------
+
+splitNoMetaUrls :: NoomiiState
+                 -> ([String], Map ByteString [String])
+splitNoMetaUrls noomiiState =
+    fromMaybe ([], metaList) $ do
+      noMetaUrl <- mNoMetaUrl
+      return (noMetaUrl, withoutNoMeta)
+  where
+    metaList = getL metaMap noomiiState
+    mNoMetaUrl = Map.lookup "" $ metaList
+    withoutNoMeta = Map.delete "" $ metaList
+
