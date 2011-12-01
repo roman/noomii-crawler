@@ -3,3 +3,4 @@ cabal-dev/
 dist/
 log/
 runCrawler.sh
+config/app.cfg

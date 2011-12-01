@@ -1,0 +1,5 @@
+smtp {
+  username = ""
+  password = ""
+  server = ""
+}
