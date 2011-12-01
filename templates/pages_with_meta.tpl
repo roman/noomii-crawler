@@ -1,4 +1,4 @@
-<div class="repeated-meta-description--section">
+<div class="repeated-meta-description-section">
   <h4 class="page-meta-description">
     Meta Description: <pageMetaDescription/>
   </h4>
