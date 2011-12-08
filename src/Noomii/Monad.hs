@@ -55,7 +55,7 @@ instance Monad m => MetaTrackerMonad (NoomiiMonad m) where
                         (Map.alter alterFn meta)
     where
       metaText = listToMaybe $
-                 concatMap getTextFromWholeTag $
+                 map (getAttrFromWholeTag "description") $
                  take 1 $
                  wholeTags "meta" (wpBody wp)
       alterFn Nothing = Just [wpURL wp]

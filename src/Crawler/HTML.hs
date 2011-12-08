@@ -1,6 +1,7 @@
 module Crawler.HTML where
 
 import Data.Maybe (mapMaybe)
+import Data.Monoid (Monoid(..))
 
 --------------------
 
@@ -9,6 +10,7 @@ import Text.HTML.TagSoup (
     Tag
   , isTagOpenName
   , isTagCloseName
+  , fromAttrib
   , maybeTagText
   )
 
@@ -33,4 +35,11 @@ wholeTags name tags = go False [] tags
       let (important, remainder) = break (isTagCloseName name) ts
           wholeTag = WholeTag important
       in go False (wholeTag : result) remainder
+
+getAttrFromWholeTag :: (Show s, StringLike s, Monoid s)
+                    => s
+                    -> WholeTag s
+                    -> s
+getAttrFromWholeTag attr (WholeTag (s:_)) = fromAttrib attr s
+getAttrFromWholeTag _ (WholeTag _) = mempty
 

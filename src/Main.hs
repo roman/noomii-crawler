@@ -1,7 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import System.Environment (getArgs)
+import Control.Exception (SomeException)
+
+----------
+
+import Data.Configurator.Types (AutoConfig(..))
+
+import qualified Data.Configurator as Config
 
 ----------
 
@@ -10,14 +16,26 @@ import Noomii.EmailNotification (sendEmailWithStats)
 
 -------------------------------------------------------------------------------
 
+
+autoConfig :: AutoConfig
+autoConfig
+  = AutoConfig {
+    interval = 1000
+  , onError  = handler
+  }
+  where
+    handler :: SomeException -> IO ()
+    handler _ = putStrLn "Some Error on the configuration load"
+
+
 main :: IO ()
 main = do
-    args <- getArgs
-    case args of
-      (user:pass:site:_) -> do
-        state <- crawlNoomii "production"
-        sendEmailWithStats user pass site state
-        putStrLn "Done."
-      _ -> putStrLn "ERROR: usage ./crawler user pass smtp server"
+    (config, _) <- Config.autoReload autoConfig ["config/app.cfg"]
+    user        <- Config.require config "smtp.username"
+    passwd      <- Config.require config "smtp.password"
+    server      <- Config.require config "smtp.server"
+    crawlState  <- crawlNoomii "production"
+    sendEmailWithStats user passwd server crawlState
+    putStrLn "Done."
 
 
