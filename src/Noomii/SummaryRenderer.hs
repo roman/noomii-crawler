@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Noomii.SummaryRenderer (renderSummary) where
 
+--------------------
+
 import Prelude hiding ((.))
 import Control.Arrow ((***))
 import Control.Category ((.))
@@ -135,11 +137,11 @@ renderSummary noomiiState = do
     textNoTitleUrls = map T.pack noTitleUrls
     textNoMetaUrls = map T.pack noMetaUrls
 
-    textMeta = map ((T.pack . B.unpack) *** (map T.pack)) $
+    textMeta = map ((T.pack . B.unpack) *** (map T.pack)) .
                Map.toList $
                Map.filter ((> 1) . length) meta
 
-    textTitles = map ((T.pack . B.unpack) *** (map T.pack)) $
+    textTitles = map ((T.pack . B.unpack) *** (map T.pack)) .
                  Map.toList $
                  Map.filter ((> 1) . length) titles
 

@@ -116,8 +116,8 @@ splitNoTitleUrls noomiiState =
       return (noTitleUrl, withoutNoTitle)
   where
     titles = getL titleMap noomiiState
-    mNoTitleUrl = Map.lookup "" $ titles
-    withoutNoTitle = Map.delete "" $ titles
+    mNoTitleUrl = Map.lookup "" titles
+    withoutNoTitle = Map.delete "" titles
 
 --------------------
 
@@ -129,6 +129,6 @@ splitNoMetaUrls noomiiState =
       return (noMetaUrl, withoutNoMeta)
   where
     metaList = getL metaMap noomiiState
-    mNoMetaUrl = Map.lookup "" $ metaList
-    withoutNoMeta = Map.delete "" $ metaList
+    mNoMetaUrl = Map.lookup "" metaList
+    withoutNoMeta = Map.delete "" metaList
 

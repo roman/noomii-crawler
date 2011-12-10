@@ -3,6 +3,8 @@ module Navigation.Types where
 import Data.Ord (Ord(..))
 import Data.Set (Set)
 
+import Pretty
+
 -------------------------------------------------------------------------------
 
 data NavEvent a
@@ -16,16 +18,16 @@ data NavEvent a
   }
   deriving (Ord, Eq)
 
-instance Show a => Show (NavEvent a) where
-  show = show . nvVal
+instance Pretty a => Pretty (NavEvent a) where
+  prettyDoc = prettyDoc . nvVal
 
 --------------------
 
-newtype NavNode a 
+newtype NavNode a
   = NavNode { fromNavNode :: (Integer, a, Maybe a) }
   deriving (Eq)
 
 instance Ord a => Ord (NavNode a) where
-  (NavNode (i0, a0, _)) `compare` (NavNode (i1, a1,_)) = 
+  (NavNode (i0, a0, _)) `compare` (NavNode (i1, a1,_)) =
       compare (i0, a0) (i1, a1)
 

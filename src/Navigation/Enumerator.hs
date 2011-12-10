@@ -12,7 +12,7 @@ module Navigation.Enumerator (
 
 import Control.Monad (liftM, zipWithM_)
 import Control.Monad.Trans (MonadIO, liftIO)
-import System.IO (Handle, hPrint, hPutStrLn)
+import System.IO (Handle, hPutStrLn)
 
 import qualified Data.Set as Set
 
@@ -27,6 +27,7 @@ import qualified Data.Enumerator.List as EL
 -- Local
 
 import Navigation.Types
+import Pretty
 
 -------------------------------------------------------------------------------
 
@@ -87,13 +88,13 @@ removeAlreadyVisited = EL.filter (not . nvAlreadyVisited)
 
 --------------------
 
-debugVisitNumbered :: (Show a, MonadIO m)
+debugVisitNumbered :: (Pretty a, MonadIO m)
                    => Handle
                    -> Enumeratee (NavEvent a) (NavEvent a) m b
 debugVisitNumbered handle = helper 0
   where
     visitNavEvent n entry =
-        liftIO . hPutStrLn handle $ show n ++ "| " ++ show entry
+        liftIO . hPutStrLn handle $ prettyShow n ++ "| " ++ prettyShow entry
 
     helper acc step@(Continue consumer) = continue go
       where
@@ -108,33 +109,29 @@ debugVisitNumbered handle = helper 0
 
 --------------------
 
-debugFrontier :: (Show a, MonadIO m)
+debugFrontier :: (Pretty a, MonadIO m)
               => Handle
               -> Enumeratee (NavEvent a) (NavEvent a) m b
 debugFrontier handle = EL.mapM showFrontier
   where
     showFrontier nv = do
       liftIO $ hPutStrLn handle $
-                "======= frontier ["
-                ++ show nv
-                ++ "]"
-      liftIO $ mapM_ (hPrint handle)
-                     (Set.toList $ nvFrontier nv)
+                "======= frontier " ++ (show $
+                                        Set.size $
+                                        nvFrontier nv)
       return nv
 
 --------------------
 
-debugVisitedSet :: (Show a, MonadIO m)
+debugVisitedSet :: (Pretty a, MonadIO m)
                 => Handle
                 -> Enumeratee (NavEvent a) (NavEvent a) m b
 debugVisitedSet handle = EL.mapM showVisited
   where
     showVisited nv = do
       liftIO $ hPutStrLn handle $
-                "======= visited ["
-                ++ show nv
-                ++ "]"
-      liftIO $ mapM_ (hPrint handle)
-                     (Set.toList $ nvVisited nv)
+                "======= visited " ++ (show $
+                                       Set.size $
+                                       nvVisited nv)
       return nv
 

@@ -21,6 +21,7 @@ import qualified Data.Enumerator.List as EL
 import Crawler.HTTP
 import Crawler.Types
 import Navigation.Enumerator
+import Pretty
 
 -------------------------------------------------------------------------------
 -- Types
@@ -32,9 +33,9 @@ data CrawlNode
 --------------------
 -- Classtype Instances for CrawlNode
 
-instance Show CrawlNode where
-  show (CrawlLink url) = url
-  show (CrawlWebPage wp) = show wp
+instance Pretty CrawlNode where
+  prettyDoc (CrawlLink url) = prettyDoc url
+  prettyDoc (CrawlWebPage wp) = prettyDoc wp
 
 ----------
 

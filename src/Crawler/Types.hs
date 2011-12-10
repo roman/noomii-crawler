@@ -31,6 +31,8 @@ import Text.HTML.TagSoup (Tag(..), isTagOpenName, fromAttrib)
 -- Local
 
 import Crawler.URI
+import Pretty
+import qualified Pretty as P
 
 -------------------------------------------------------------------------------
 
@@ -60,30 +62,26 @@ newtype WholeTag s
 
 -------------------------------------------------------------------------------
 
-showBadWebPage :: String -> String -> String -> Status -> String
+showBadWebPage :: String -> String -> String -> Status -> Doc
 showBadWebPage url msg perf status =
-    "\x1B[31;1m- ["
-    ++ show (statusCode status)
-    ++ ": "
-    ++ msg
-    ++ "]\x1B[0m "
-    ++ url
-    ++ "\x1B[33;1m ("
-    ++ perf
-    ++ ")\x1B[0m"
+    P.red (P.brackets $
+           P.text (show $ statusCode status)
+           <> P.colon
+           <+> P.text msg)
+    <+> P.text url
+    <+> P.yellow (P.parens $
+                  P.text perf)
 
-showGoodWebPage :: String -> String -> Status -> String
+showGoodWebPage :: String -> String -> Status -> Doc
 showGoodWebPage url perf status =
-    "\x1B[32;1m+ ["
-    ++ show (statusCode status)
-    ++ "]\x1B[0m "
-    ++ url
-    ++ "\x1B[33;1m ("
-    ++ perf
-    ++ ")\x1B[0m"
+    P.green (P.brackets $
+             P.text (show $ statusCode status))
+    <+> P.text url
+    <+> P.yellow (P.parens $
+                  P.text perf)
 
-instance Show WebPage where
-  show (WebPage _ url _ _ status _ perf0 (Just e))
+instance Pretty WebPage where
+  prettyDoc (WebPage _ url _ _ status _ perf0 (Just e))
     = case fromException e of
         Just (InvalidUrlException _ msg) ->
           showBadWebPage url msg perf status
@@ -98,7 +96,7 @@ instance Show WebPage where
     where
       perf = maybe "0s" show perf0
 
-  show (WebPage _ url _ _ status _ perf0 _) =
+  prettyDoc (WebPage _ url _ _ status _ perf0 _) =
       showGoodWebPage url perf status
     where
       perf = maybe "0s" show perf0
@@ -109,8 +107,10 @@ instance Eq WebPage where
 instance Ord WebPage where
   compare = comparing getWebPageUrlString
 
-instance Show Link where
-  show (Link uri _) = "Link: " ++ show uri
+instance Pretty Link where
+  prettyDoc (Link uri _) = P.text "Link" <>
+                           P.colon <+>
+                           P.text (show uri)
 
 -------------------------------------------------------------------------------
 -- WebPage Functions
