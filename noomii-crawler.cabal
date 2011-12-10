@@ -74,6 +74,7 @@ Executable noomii-crawler
     mtl,
     network,
     old-locale,
+    pretty <= 1.0.1.2,
     regex-pcre,
     tagsoup,
     text,
