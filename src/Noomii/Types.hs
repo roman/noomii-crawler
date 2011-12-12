@@ -7,9 +7,11 @@ module Noomii.Types where
 import Data.ByteString.Char8 (ByteString)
 import Data.Maybe (isNothing, fromMaybe)
 import Data.Map (Map)
+import Data.Sequence (Seq)
 import Data.Monoid (Monoid(..))
 import Data.Time.Clock (NominalDiffTime)
 
+import qualified Data.Sequence as Seq
 import qualified Data.Map as Map
 ----------
 
@@ -88,8 +90,8 @@ instance Monoid PerformanceStat where
 
 data NoomiiState
   = NoomiiState {
-    _titleMap         :: Map ByteString [String]
-  , _metaMap          :: Map ByteString [String]
+    _titleMap         :: Map ByteString (Seq String)
+  , _metaMap          :: Map ByteString (Seq String)
   , _performanceStats :: PerformanceStat
   }
   deriving (Show)
@@ -109,9 +111,9 @@ instance Monoid NoomiiState where
 --------------------
 
 splitNoTitleUrls :: NoomiiState
-                 -> ([String], Map ByteString [String])
+                 -> (Seq String, Map ByteString (Seq String))
 splitNoTitleUrls noomiiState =
-    fromMaybe ([], titles) $ do
+    fromMaybe (Seq.empty, titles) $ do
       noTitleUrl <- mNoTitleUrl
       return (noTitleUrl, withoutNoTitle)
   where
@@ -122,9 +124,9 @@ splitNoTitleUrls noomiiState =
 --------------------
 
 splitNoMetaUrls :: NoomiiState
-                 -> ([String], Map ByteString [String])
+                 -> (Seq String, Map ByteString (Seq String))
 splitNoMetaUrls noomiiState =
-    fromMaybe ([], metaList) $ do
+    fromMaybe (Seq.empty, metaList) $ do
       noMetaUrl <- mNoMetaUrl
       return (noMetaUrl, withoutNoMeta)
   where

@@ -6,8 +6,11 @@ module Noomii.SummaryRenderer (renderSummary) where
 import Prelude hiding ((.))
 import Control.Category ((.))
 import Data.ByteString (ByteString)
+import Data.Foldable (toList)
+import Data.Sequence (Seq)
 
 import qualified Data.Map as Map
+import qualified Data.Sequence as Seq
 
 --------------------
 
@@ -47,8 +50,8 @@ maxPerfSplice = perfSplice maxPerformance
 --------------------
 
 -- Renders a List of Urls
-urlListSplice :: Monad m => [String] -> Splice m
-urlListSplice = mapSplices urlSplice
+urlListSplice :: Monad m => Seq String -> Splice m
+urlListSplice = mapSplices urlSplice . toList
 
 --------------------
 
@@ -68,7 +71,7 @@ urlSplice url = do
 -- Renders a list of urls that have the same title
 repeatedTitleSplice :: Monad m
                     => ByteString
-                    -> [String]
+                    -> Seq String
                     -> Splice m
 repeatedTitleSplice title urls =
     localTS bindSplices' $ do
@@ -86,7 +89,7 @@ repeatedTitleSplice title urls =
 -- Renders a list of urls that have the same meta desc
 repeatedMetaSplice :: Monad m
                     => ByteString
-                    -> [String]
+                    -> Seq String
                     -> Splice m
 repeatedMetaSplice desc urls =
     localTS bindSplices' $ do
@@ -104,7 +107,7 @@ repeatedMetaSplice desc urls =
 
 -- Renders several list of urls that have the same title
 repeatedTitleListSplice :: Monad m
-                     => [(ByteString, [String])]
+                     => [(ByteString, Seq String)]
                      -> Splice m
 repeatedTitleListSplice =
     mapSplices (uncurry repeatedTitleSplice)
@@ -112,7 +115,7 @@ repeatedTitleListSplice =
 --------------------
 
 repeatedMetaListSplice :: Monad m
-                     => [(ByteString, [String])]
+                     => [(ByteString, Seq String)]
                      -> Splice m
 repeatedMetaListSplice =
     mapSplices (uncurry repeatedMetaSplice)
@@ -136,10 +139,10 @@ renderSummary noomiiState = do
     (noMetaUrls, meta0) = splitNoMetaUrls noomiiState
 
     meta = Map.toList $
-           Map.filter ((> 1) . length) meta0
+           Map.filter ((> 1) . Seq.length) meta0
 
     titles = Map.toList $
-             Map.filter ((> 1) . length) titles0
+             Map.filter ((> 1) . Seq.length) titles0
 
     splices = [("pagesWithRepeatedTitles",
                 repeatedTitleListSplice titles),

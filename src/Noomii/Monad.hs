@@ -12,6 +12,7 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Maybe (listToMaybe)
 import Data.Monoid (Monoid(..))
 
+import Data.Sequence as Seq
 import qualified Data.Map as Map
 
 ----------
@@ -56,10 +57,10 @@ instance Monad m => MetaTrackerMonad (NoomiiMonad m) where
     where
       metaText = listToMaybe $
                  map (getAttrFromWholeTag "description") $
-                 take 1 $
+                 Prelude.take 1 $
                  wholeTags "meta" (wpBody wp)
-      alterFn Nothing = Just [wpURL wp]
-      alterFn val = (wpURL wp :) `fmap` val
+      alterFn Nothing = Just $ Seq.singleton (wpURL wp)
+      alterFn val = ((wpURL wp) Seq.<|) `fmap` val
 
 ----------
 
@@ -73,10 +74,10 @@ instance Monad m => TitleTrackerMonad (NoomiiMonad m) where
     where
       titleText = listToMaybe $
                   concatMap getTextFromWholeTag $
-                  take 1 $
+                  Prelude.take 1 $
                   wholeTags "title" (wpBody wp)
-      alterFn Nothing = Just [wpURL wp]
-      alterFn val = (wpURL wp :) `fmap` val
+      alterFn Nothing = Just $ Seq.singleton (wpURL wp)
+      alterFn val = ((wpURL wp) Seq.<|) `fmap` val
 
 ----------
 
