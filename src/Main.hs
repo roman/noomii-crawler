@@ -36,6 +36,7 @@ main = do
     server      <- Config.require config "smtp.server"
     env         <- Config.require config "crawl.environment"
     crawlState  <- crawlNoomii env
+    putStrLn "**** Finished Crawling"
     sendEmailWithStats user passwd server crawlState
     putStrLn "Done."
 
