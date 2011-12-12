@@ -4,10 +4,9 @@ module Noomii.SummaryRenderer (renderSummary) where
 --------------------
 
 import Prelude hiding ((.))
-import Control.Arrow ((***))
 import Control.Category ((.))
+import Data.ByteString (ByteString)
 
-import qualified Data.ByteString.Char8 as B
 import qualified Data.Map as Map
 
 --------------------
@@ -48,16 +47,17 @@ maxPerfSplice = perfSplice maxPerformance
 --------------------
 
 -- Renders a List of Urls
-urlListSplice :: Monad m => [Text] -> Splice m
+urlListSplice :: Monad m => [String] -> Splice m
 urlListSplice = mapSplices urlSplice
 
 --------------------
 
 -- Renders an URL using the url_item partial
-urlSplice :: Monad m => Text -> Splice m
+urlSplice :: Monad m => String -> Splice m
 urlSplice url = do
-    result <- callTemplate "url_item" [ ("urlTarget", url)
-                                      , ("urlText", url)
+    let url' = T.pack url
+    result <- callTemplate "url_item" [ ("urlTarget", url')
+                                      , ("urlText", url')
                                       ]
     case result of
       Just tags -> return tags
@@ -67,8 +67,8 @@ urlSplice url = do
 
 -- Renders a list of urls that have the same title
 repeatedTitleSplice :: Monad m
-                    => Text
-                    -> [Text]
+                    => ByteString
+                    -> [String]
                     -> Splice m
 repeatedTitleSplice title urls =
     localTS bindSplices' $ do
@@ -77,15 +77,16 @@ repeatedTitleSplice title urls =
         Just tags -> return tags
         Nothing -> error "Check the name of the template"
   where
-    bindSplices' = bindSplices [("pageTitle", textSplice title),
-                                ("urlList", urlListSplice urls)]
+    bindSplices' =
+      bindSplices [("pageTitle", textSplice $ T.decodeUtf8 title),
+                   ("urlList", urlListSplice urls)]
 
 --------------------
 
 -- Renders a list of urls that have the same meta desc
 repeatedMetaSplice :: Monad m
-                    => Text
-                    -> [Text]
+                    => ByteString
+                    -> [String]
                     -> Splice m
 repeatedMetaSplice desc urls =
     localTS bindSplices' $ do
@@ -95,7 +96,7 @@ repeatedMetaSplice desc urls =
         Nothing -> error "Check the name of the template"
   where
     bindSplices' =
-      bindSplices [("pageMetaDescription", textSplice desc),
+      bindSplices [("pageMetaDescription", textSplice $ T.decodeUtf8 desc),
                    ("urlList", urlListSplice urls)]
 
 
@@ -103,7 +104,7 @@ repeatedMetaSplice desc urls =
 
 -- Renders several list of urls that have the same title
 repeatedTitleListSplice :: Monad m
-                     => [(Text, [Text])]
+                     => [(ByteString, [String])]
                      -> Splice m
 repeatedTitleListSplice =
     mapSplices (uncurry repeatedTitleSplice)
@@ -111,7 +112,7 @@ repeatedTitleListSplice =
 --------------------
 
 repeatedMetaListSplice :: Monad m
-                     => [(Text, [Text])]
+                     => [(ByteString, [String])]
                      -> Splice m
 repeatedMetaListSplice =
     mapSplices (uncurry repeatedMetaSplice)
@@ -131,26 +132,21 @@ renderSummary noomiiState = do
                     fst)
                    renderResult
   where
-    (noTitleUrls, titles) = splitNoTitleUrls noomiiState
-    (noMetaUrls, meta) = splitNoMetaUrls noomiiState
+    (noTitleUrls, titles0) = splitNoTitleUrls noomiiState
+    (noMetaUrls, meta0) = splitNoMetaUrls noomiiState
 
-    textNoTitleUrls = map T.pack noTitleUrls
-    textNoMetaUrls = map T.pack noMetaUrls
+    meta = Map.toList $
+           Map.filter ((> 1) . length) meta0
 
-    textMeta = map ((T.pack . B.unpack) *** (map T.pack)) .
-               Map.toList $
-               Map.filter ((> 1) . length) meta
-
-    textTitles = map ((T.pack . B.unpack) *** (map T.pack)) .
-                 Map.toList $
-                 Map.filter ((> 1) . length) titles
+    titles = Map.toList $
+             Map.filter ((> 1) . length) titles0
 
     splices = [("pagesWithRepeatedTitles",
-                repeatedTitleListSplice textTitles),
+                repeatedTitleListSplice titles),
                ("pagesWithRepeatedMeta",
-                repeatedMetaListSplice textMeta),
-               ("noTitlePages", urlListSplice textNoTitleUrls),
-               ("noMetaPages", urlListSplice textNoMetaUrls),
+                repeatedMetaListSplice meta),
+               ("noTitlePages", urlListSplice noTitleUrls),
+               ("noMetaPages", urlListSplice noMetaUrls),
                ("minResponseTime", minPerfSplice noomiiState),
                ("maxResponseTime", maxPerfSplice noomiiState)]
 
