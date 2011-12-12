@@ -21,6 +21,7 @@ sendEmailWithStats :: String
                    -> IO ()
 sendEmailWithStats user pass site state =
     doSMTP site $ \smtp -> do
+      putStrLn "Rendering the crawl summary..."
       summary <- renderSummary state
       let lazySummary = T.fromChunks [summary]
       T.putStrLn summary
