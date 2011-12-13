@@ -43,18 +43,19 @@ crawlNoomii env =
           removeAlreadyVisited          =$
           debugVisitNumbered stdout     =$
           removeBrokenWebPages          =$
-          debugFrontier stdout          =$
+          --debugFrontier stdout          =$
           --trackPerformanceStats         =$
           --trackRepeatedMeta             =$
           --trackRepeatedTitles           =$
-          evaluateState                 =$
+          --evaluateState                 =$
           generateSitemap               =$
           EL.map compress               =$
           EL.map (BS.concat . toChunks) =$
           EB.iterHandle handle
   where
-    regexp = "https?://.*\\.noomii\\.com/.*"
+    regexp = "^https?://.*\\.noomii\\.com/[^\\.]*$"
     domain
       | env == "production" = "http://www.noomii.com/"
+      | env == "pdf" = "http://staging.noomii.com/pdfs/Positive-Psyc-For-Business-Coaches.pdf"
       | otherwise = "http://" ++ env ++ ".noomii.com/"
 
