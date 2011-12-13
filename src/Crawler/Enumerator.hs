@@ -3,6 +3,7 @@ module Crawler.Enumerator where
 --------------------
 -- Standard
 
+import Control.Monad (when)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Maybe (isNothing)
 import Network.URI (parseAbsoluteURI)
@@ -62,7 +63,10 @@ enumCrawler :: MonadIO m
             => String
             -> String
             -> Enumerator (NavEvent CrawlNode) m b
-enumCrawler link0 regexp step = Iteratee $
+enumCrawler link0 regexp step = Iteratee $ do
+    when (not (link0 =~ regexp)) $
+      error $ "[error] invalid start link: " ++ link0
+
     case parseAbsoluteURI link0 of
       Nothing -> error $ "[error] invalid link: " ++ link0
       Just uri ->
