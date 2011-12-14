@@ -43,7 +43,6 @@ crawlNoomii env =
           removeAlreadyVisited          =$
           removeFragmentURIs            =$
           debugVisitNumbered stdout     =$
-          EL.isolate 35                 =$
           trackErrorStats               =$
           removeBrokenWebPages          =$
           trackPerformanceStats         =$
