@@ -40,6 +40,7 @@ data WebPage
   = WebPage {
     wpURI        :: URI
   , wpURL        :: String
+  , wpParentURL  :: String
   , wpLinks      :: [Link]
   , wpBody       :: [Tag ByteString]
   , wpStatusCode :: Status
@@ -62,15 +63,17 @@ newtype WholeTag s
 
 -------------------------------------------------------------------------------
 
-showBadWebPage :: String -> String -> String -> Status -> Doc
-showBadWebPage url msg perf status =
-    P.red (P.brackets $
-           P.text (show $ statusCode status)
-           <> P.colon
-           <+> P.text msg)
-    <+> P.text url
-    <+> P.yellow (P.parens $
-                  P.text perf)
+showBadWebPage :: String -> String -> String -> String -> Status -> Doc
+showBadWebPage url parentUrl msg perf status =
+    P.hang (P.text "From: " <+> P.text parentUrl)
+           2 $
+           P.red (P.brackets $
+                  P.text (show $ statusCode status)
+                  <> P.colon
+                  <+> P.text msg)
+           <+> P.text url
+           <+> P.yellow (P.parens $
+                         P.text perf)
 
 showGoodWebPage :: String -> String -> Status -> Doc
 showGoodWebPage url perf status =
@@ -81,22 +84,22 @@ showGoodWebPage url perf status =
                   P.text perf)
 
 instance Pretty WebPage where
-  prettyDoc (WebPage _ url _ _ status _ perf0 (Just e))
+  prettyDoc (WebPage _ url parentUrl _ _ status _ perf0 (Just e))
     = case fromException e of
         Just (InvalidUrlException _ msg) ->
-          showBadWebPage url msg perf status
+          showBadWebPage url parentUrl msg perf status
         Just (TooManyRedirects) ->
-          showBadWebPage url "too many redirects" perf status
+          showBadWebPage url parentUrl "too many redirects" perf status
         Just (HttpParserException _) ->
-          showBadWebPage url "http parse error" perf status
+          showBadWebPage url parentUrl "http parse error" perf status
         Just _ ->
-          showBadWebPage url "status code error" perf status
+          showBadWebPage url parentUrl "status code error" perf status
         Nothing ->
-          showBadWebPage url "unknown error" perf status
+          showBadWebPage url parentUrl "unknown error" perf status
     where
       perf = maybe "0s" show perf0
 
-  prettyDoc (WebPage _ url _ _ status _ perf0 _) =
+  prettyDoc (WebPage _ url _ _ _ status _ perf0 _) =
       showGoodWebPage url perf status
     where
       perf = maybe "0s" show perf0
@@ -117,6 +120,7 @@ instance Pretty Link where
 
 mkWebPage :: URI
           -> String
+          -> String
           -> [Link]
           -> [Tag ByteString]
           -> Status
@@ -124,15 +128,23 @@ mkWebPage :: URI
           -> Maybe NominalDiffTime
           -> Maybe SomeException
           -> WebPage
-mkWebPage uri url links tags status headers perf Nothing
+mkWebPage uri url parentUrl links tags status headers perf Nothing
   | 200 <= statusCode status && statusCode status < 300
-    = WebPage uri url links tags status headers perf Nothing
+    = WebPage uri url parentUrl links tags status headers perf Nothing
   | otherwise
-    = WebPage uri url links tags status headers perf $
+    = WebPage uri url parentUrl links tags status headers perf $
         Just (toException $ StatusCodeException (statusCode status)
                                                 BL.empty)
-mkWebPage uri url links tags status headers perf e
-    = WebPage uri url links tags status headers perf e
+mkWebPage uri url parentUrl links tags status headers perf e
+    = WebPage uri
+              url
+              parentUrl
+              links
+              tags
+              status
+              headers
+              perf
+              e
 
 
 

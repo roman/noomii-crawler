@@ -33,7 +33,7 @@ import Pretty
 
 enumNavigation :: (Ord a, Monad m)
                => (a -> a -> m Integer)
-               -> (a -> m (a, [a]))
+               -> (Maybe a -> a -> m (a, [a]))
                -> a
                -> Enumerator (NavEvent a) m b
 enumNavigation costFn actionsFn zero =
@@ -59,7 +59,7 @@ enumNavigation costFn actionsFn zero =
 
           | otherwise -> do
 
-            (node1, children0) <- actionsFn node
+            (node1, children0) <- actionsFn parent node
             childrenCosts <- mapM (((+cost) `liftM`) . costFn node1)
                                   children0
             let children = Set.fromList $ zip3 childrenCosts

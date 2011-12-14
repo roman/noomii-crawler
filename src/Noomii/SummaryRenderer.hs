@@ -50,15 +50,15 @@ maxPerfSplice = perfSplice maxPerformance
 --------------------
 
 -- Renders a List of Urls
-urlListSplice :: Monad m => Seq String -> Splice m
+urlListSplice :: Monad m => Seq (String, String) -> Splice m
 urlListSplice = mapSplices urlSplice . toList
 
 --------------------
 
 -- Renders an URL using the url_item partial
-urlSplice :: Monad m => String -> Splice m
-urlSplice url = do
-    let url' = T.pack url
+urlSplice :: Monad m => (String, String) -> Splice m
+urlSplice (parentUrl, url) = do
+    let url' = T.pack $ url ++ "(from: " ++ parentUrl ++ ")"
     result <- callTemplate "url_item" [ ("urlTarget", url')
                                       , ("urlText", url')
                                       ]
@@ -71,7 +71,7 @@ urlSplice url = do
 -- Renders a list of urls that have the same title
 repeatedTitleSplice :: Monad m
                     => ByteString
-                    -> Seq String
+                    -> Seq (String, String)
                     -> Splice m
 repeatedTitleSplice title urls =
     localTS bindSplices' $ do
@@ -89,7 +89,7 @@ repeatedTitleSplice title urls =
 -- Renders a list of urls that have the same meta desc
 repeatedMetaSplice :: Monad m
                     => ByteString
-                    -> Seq String
+                    -> Seq (String, String)
                     -> Splice m
 repeatedMetaSplice desc urls =
     localTS bindSplices' $ do
@@ -107,7 +107,7 @@ repeatedMetaSplice desc urls =
 
 -- Renders several list of urls that have the same title
 repeatedTitleListSplice :: Monad m
-                     => [(ByteString, Seq String)]
+                     => [(ByteString, Seq (String, String))]
                      -> Splice m
 repeatedTitleListSplice =
     mapSplices (uncurry repeatedTitleSplice)
@@ -115,7 +115,7 @@ repeatedTitleListSplice =
 --------------------
 
 repeatedMetaListSplice :: Monad m
-                     => [(ByteString, Seq String)]
+                     => [(ByteString, Seq (String, String))]
                      -> Splice m
 repeatedMetaListSplice =
     mapSplices (uncurry repeatedMetaSplice)

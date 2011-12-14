@@ -90,8 +90,8 @@ instance Monoid PerformanceStat where
 
 data NoomiiState
   = NoomiiState {
-    _titleMap         :: Map ByteString (Seq String)
-  , _metaMap          :: Map ByteString (Seq String)
+    _titleMap         :: Map ByteString (Seq (String, String))
+  , _metaMap          :: Map ByteString (Seq (String, String))
   , _performanceStats :: PerformanceStat
   }
   deriving (Show)
@@ -111,7 +111,8 @@ instance Monoid NoomiiState where
 --------------------
 
 splitNoTitleUrls :: NoomiiState
-                 -> (Seq String, Map ByteString (Seq String))
+                 -> ( Seq (String, String)
+                    , Map ByteString (Seq (String, String)) )
 splitNoTitleUrls noomiiState =
     fromMaybe (Seq.empty, titles) $ do
       noTitleUrl <- mNoTitleUrl
@@ -124,7 +125,8 @@ splitNoTitleUrls noomiiState =
 --------------------
 
 splitNoMetaUrls :: NoomiiState
-                 -> (Seq String, Map ByteString (Seq String))
+                 -> ( Seq (String, String)
+                    , Map ByteString (Seq (String, String)) )
 splitNoMetaUrls noomiiState =
     fromMaybe (Seq.empty, metaList) $ do
       noMetaUrl <- mNoMetaUrl

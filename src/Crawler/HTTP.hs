@@ -43,8 +43,11 @@ import System.Util
 
 -------------------------------------------------------------------------------
 
-requestWebPage :: MonadIO m => String -> m (Either String WebPage)
-requestWebPage url = liftIO $ withManager $ \manager ->
+requestWebPage :: MonadIO m
+               => String
+               -> String
+               -> m (Either String WebPage)
+requestWebPage fromUrl url = liftIO $ withManager $ \manager ->
     case parseAbsoluteURI url of
 
       Nothing ->
@@ -53,6 +56,7 @@ requestWebPage url = liftIO $ withManager $ \manager ->
         Right $
           mkWebPage nullURI
                     url
+                    fromUrl
                     []
                     []
                     statusBadRequest
@@ -75,6 +79,7 @@ requestWebPage url = liftIO $ withManager $ \manager ->
             -- Return an invalid WebPage
             return . Right $ mkWebPage uri
                                        url
+                                       fromUrl
                                        []
                                        []
                                        statusBadRequest
@@ -91,6 +96,7 @@ requestWebPage url = liftIO $ withManager $ \manager ->
             -- Return a valid WebPage
             return . Right $ mkWebPage uri
                                        url
+                                       fromUrl
                                        links
                                        tags
                                        status

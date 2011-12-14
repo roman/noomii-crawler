@@ -59,8 +59,8 @@ instance Monad m => MetaTrackerMonad (NoomiiMonad m) where
                  map (getAttrFromWholeTag "description") $
                  Prelude.take 1 $
                  wholeTags "meta" (wpBody wp)
-      alterFn Nothing = Just $ Seq.singleton (wpURL wp)
-      alterFn val = ((wpURL wp) Seq.<|) `fmap` val
+      alterFn Nothing = Just $ Seq.singleton (wpParentURL wp, wpURL wp)
+      alterFn val = ((wpParentURL wp, wpURL wp) Seq.<|) `fmap` val
 
 ----------
 
@@ -76,8 +76,8 @@ instance Monad m => TitleTrackerMonad (NoomiiMonad m) where
                   concatMap getTextFromWholeTag $
                   Prelude.take 1 $
                   wholeTags "title" (wpBody wp)
-      alterFn Nothing = Just $ Seq.singleton (wpURL wp)
-      alterFn val = ((wpURL wp) Seq.<|) `fmap` val
+      alterFn Nothing = Just $ Seq.singleton (wpParentURL wp, wpURL wp)
+      alterFn val = ((wpParentURL wp, wpURL wp) Seq.<|) `fmap` val
 
 ----------
 

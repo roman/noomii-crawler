@@ -75,10 +75,14 @@ enumCrawler link0 regexp step = Iteratee $ do
                                      (CrawlLink link0)
                                      step
   where
-    requestChildren _ (CrawlWebPage _) =
+    fromCrawlLink (CrawlLink l) = l
+    fromCrawlLink _ = error "invalid state on crawler"
+
+    requestChildren _ _ (CrawlWebPage _) =
       error "[error] invalid state on crawler"
-    requestChildren domain (CrawlLink link) = do
-      result <- requestWebPage link
+    requestChildren domain parent (CrawlLink link) = do
+      let parentLink = maybe "" fromCrawlLink parent
+      result <- requestWebPage parentLink link
       case result of
         Left _ -> return (CrawlLink link, [])
         Right wp ->
