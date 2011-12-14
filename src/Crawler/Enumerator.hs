@@ -99,3 +99,18 @@ removeBrokenWebPages = EL.filter (notBroken . nvVal)
     notBroken (CrawlWebPage wp) = isNothing $ wpError wp
     notBroken _ = False
 
+--------------------
+
+removeFragmentURIs :: MonadIO m
+                   => Enumeratee
+                      (NavEvent CrawlNode)
+                      (NavEvent CrawlNode)
+                      m
+                      b
+removeFragmentURIs = EL.filter removeFragment
+  where
+    removeFragment e =
+      case nvVal e of
+        CrawlLink l     -> not $ l =~ "#"
+        CrawlWebPage wp -> not $ (wpURL wp) =~ "#"
+

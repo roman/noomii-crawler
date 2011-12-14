@@ -41,6 +41,7 @@ crawlNoomii env =
         run_ $
           enumCrawler domain regexp     $$
           removeAlreadyVisited          =$
+          removeFragmentURIs            =$
           debugVisitNumbered stdout     =$
           removeBrokenWebPages          =$
           --debugFrontier stdout          =$
@@ -56,6 +57,5 @@ crawlNoomii env =
     regexp = "^https?://.*\\.noomii\\.com/[^\\.]*$"
     domain
       | env == "production" = "http://www.noomii.com/"
-      | env == "pdf" = "http://staging.noomii.com/pdfs/Positive-Psyc-For-Business-Coaches.pdf"
       | otherwise = "http://" ++ env ++ ".noomii.com/"
 
