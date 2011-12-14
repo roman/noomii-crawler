@@ -3,7 +3,6 @@ module Noomii.Enumeratees.TrackPerformanceStats where
 --------------------
 import Data.Enumerator
 
-
 --------------------
 import Crawler.Enumerator
 import Crawler.Types

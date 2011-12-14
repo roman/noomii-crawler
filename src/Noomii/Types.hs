@@ -10,6 +10,7 @@ import Data.Map (Map)
 import Data.Sequence (Seq)
 import Data.Monoid (Monoid(..))
 import Data.Time.Clock (NominalDiffTime)
+import Network.HTTP.Types (Status(..))
 
 import qualified Data.Sequence as Seq
 import qualified Data.Map as Map
@@ -92,6 +93,7 @@ data NoomiiState
   = NoomiiState {
     _titleMap         :: Map ByteString (Seq (String, String))
   , _metaMap          :: Map ByteString (Seq (String, String))
+  , _errorMap         :: Map String     (Seq (Status, String))
   , _performanceStats :: PerformanceStat
   }
   deriving (Show)
@@ -101,12 +103,14 @@ makeLenses [''NoomiiState]
 ----------
 
 instance Monoid NoomiiState where
-  mempty = NoomiiState mempty mempty mempty
-  mappend (NoomiiState a1 b1 c1)
-          (NoomiiState a2 b2 c2)
+  mempty = NoomiiState mempty mempty mempty mempty
+  mappend (NoomiiState a1 b1 c1 d1)
+          (NoomiiState a2 b2 c2 d2)
       = NoomiiState (a1 `mappend` a2)
                     (b1 `mappend` b2)
                     (c1 `mappend` c2)
+                    (d1 `mappend` d2)
+
 
 --------------------
 

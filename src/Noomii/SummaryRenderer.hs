@@ -17,6 +17,7 @@ import qualified Data.Sequence as Seq
 import Blaze.ByteString.Builder (toByteString)
 import Data.Lens.Common (Lens, getL)
 import Data.Text (Text)
+import Network.HTTP.Types (Status(..))
 import Text.Templating.Heist
 
 import qualified Data.Text as T
@@ -55,6 +56,11 @@ urlListSplice = mapSplices urlSplice . toList
 
 --------------------
 
+brokenUrlListSplice :: Monad m => Seq (Status, String) -> Splice m
+brokenUrlListSplice = mapSplices brokenUrlSplice . toList
+
+--------------------
+
 -- Renders an URL using the url_item partial
 urlSplice :: Monad m => (String, String) -> Splice m
 urlSplice (parentUrl, url) = do
@@ -65,6 +71,18 @@ urlSplice (parentUrl, url) = do
     case result of
       Just tags -> return tags
       Nothing -> error "Error rendering url_item"
+
+--------------------
+
+brokenUrlSplice :: Monad m => (Status, String) -> Splice m
+brokenUrlSplice (status, url) = do
+    result <- callTemplate "broken_url_item"
+                           [ ("urlTarget", T.pack url)
+                           , ("urlText", T.pack url)
+                           , ("urlStatus", T.pack $ show status)]
+    case result of
+      Just tags -> return tags
+      Nothing -> error "Error rendering broken_url_item"
 
 --------------------
 
@@ -102,6 +120,23 @@ repeatedMetaSplice desc urls =
       bindSplices [("pageMetaDescription", textSplice $ T.decodeUtf8 desc),
                    ("urlList", urlListSplice urls)]
 
+--------------------
+
+urlErrorSplice :: Monad m
+               => String
+               -> Seq (Status, String)
+               -> Splice m
+urlErrorSplice parentURL urls =
+    localTS bindSplices' $ do
+      result <- callTemplate "broken_page" []
+      case result of
+        Just tags -> return tags
+        Nothing -> error "Check the name of the template"
+  where
+    bindSplices' =
+      bindSplices [ ("fromUrl", textSplice $ T.pack parentURL)
+                  , ("brokenUrlList", brokenUrlListSplice urls)]
+
 
 --------------------
 
@@ -120,6 +155,12 @@ repeatedMetaListSplice :: Monad m
 repeatedMetaListSplice =
     mapSplices (uncurry repeatedMetaSplice)
 
+--------------------
+
+urlErrorsListSplice :: Monad m
+                    => [(String, Seq (Status, String))]
+                    -> Splice m
+urlErrorsListSplice = mapSplices (uncurry urlErrorSplice)
 --------------------
 
 renderSummary :: NoomiiState -> IO Text
@@ -144,12 +185,13 @@ renderSummary noomiiState = do
     titles = Map.toList $
              Map.filter ((> 1) . Seq.length) titles0
 
-    splices = [("pagesWithRepeatedTitles",
-                repeatedTitleListSplice titles),
-               ("pagesWithRepeatedMeta",
-                repeatedMetaListSplice meta),
-               ("noTitlePages", urlListSplice noTitleUrls),
-               ("noMetaPages", urlListSplice noMetaUrls),
-               ("minResponseTime", minPerfSplice noomiiState),
-               ("maxResponseTime", maxPerfSplice noomiiState)]
+    errors = Map.toList $ getL errorMap noomiiState
+
+    splices = [ ("pagesWithRepeatedTitles", repeatedTitleListSplice titles)
+              , ("pagesWithRepeatedMeta", repeatedMetaListSplice meta)
+              , ("noTitlePages", urlListSplice noTitleUrls)
+              , ("noMetaPages", urlListSplice noMetaUrls)
+              , ("minResponseTime", minPerfSplice noomiiState)
+              , ("maxResponseTime", maxPerfSplice noomiiState)
+              , ("brokenPages", urlErrorsListSplice errors)]
 

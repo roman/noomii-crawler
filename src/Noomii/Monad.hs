@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Noomii.Monad where
 
+import Control.Monad (when)
 import Control.Monad.State.Strict (
     MonadState(..)
   , StateT
@@ -12,11 +13,12 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Maybe (listToMaybe)
 import Data.Monoid (Monoid(..))
 
-import Data.Sequence as Seq
 import qualified Data.Map as Map
+import qualified Data.Sequence as Seq
 
 ----------
 
+import Network.HTTP.Types (Status(..))
 import Data.Lens.Common (modL)
 
 ----------
@@ -51,13 +53,15 @@ instance Monad m => MetaTrackerMonad (NoomiiMonad m) where
   trackRepeatedMetaTags wp = NoomiiMonad $
       case metaText of
         Nothing -> return ()
-        Just meta ->
+        Just meta -> do
           modify $ modL metaMap
                         (Map.alter alterFn meta)
     where
-      metaText = listToMaybe $
-                 map (getAttrFromWholeTag "description") $
-                 Prelude.take 1 $
+      metaText = listToMaybe .
+                 take 1 .
+                 map (getAttrFromWholeTag "content") .
+                 filter (("description" ==) .
+                         getAttrFromWholeTag "name") $
                  wholeTags "meta" (wpBody wp)
       alterFn Nothing = Just $ Seq.singleton (wpParentURL wp, wpURL wp)
       alterFn val = ((wpParentURL wp, wpURL wp) Seq.<|) `fmap` val
@@ -78,6 +82,20 @@ instance Monad m => TitleTrackerMonad (NoomiiMonad m) where
                   wholeTags "title" (wpBody wp)
       alterFn Nothing = Just $ Seq.singleton (wpParentURL wp, wpURL wp)
       alterFn val = ((wpParentURL wp, wpURL wp) Seq.<|) `fmap` val
+
+----------
+
+instance Monad m => ErrorTrackerMonad (NoomiiMonad m) where
+  trackErrors wp = NoomiiMonad $
+      when failedWebPage $
+            modify $ 
+            modL errorMap 
+                 (Map.alter alterFn (wpParentURL wp))
+    where
+      failedWebPage = (statusCode (wpStatusCode wp)) /= 200
+      alterFn Nothing = Just $ Seq.singleton (wpStatusCode wp, wpURL wp)
+      alterFn val = ((wpStatusCode wp, wpURL wp)  Seq.<|) `fmap` val
+      
 
 ----------
 

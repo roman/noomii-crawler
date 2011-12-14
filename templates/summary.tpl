@@ -8,6 +8,12 @@
   </ul>
 </div>
 
+<div class="broken-pages-section">
+  <h3>Pages that have broken URLs</h3>
+  <brokenPages/>
+</div>
+
+
 <div class="pages-with-no-titles">
   <h3>Pages with no titles</h3>
   <ul>
