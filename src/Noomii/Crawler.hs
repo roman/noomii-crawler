@@ -37,22 +37,24 @@ crawlNoomii :: MonadIO m => String -> m NoomiiState
 crawlNoomii env =
     liftIO $
     withFile "log/sitemap.xml.gz" WriteMode $ \handle ->
-      execNoomiiMonad $
-        run_ $
-          enumCrawler domain regexp     $$
-          removeAlreadyVisited          =$
-          removeFragmentURIs            =$
-          debugVisitNumbered stdout     =$
-          trackErrorStats               =$
-          removeBrokenWebPages          =$
-          trackPerformanceStats         =$
-          trackRepeatedMeta             =$
-          trackRepeatedTitles           =$
-          evaluateState                 =$
-          generateSitemap               =$
-          EL.map compress               =$
-          EL.map (BS.concat . toChunks) =$
-          EB.iterHandle handle
+      withFile "log/crawl.log" WriteMode $ \crawlHandle ->
+        execNoomiiMonad $
+          run_ $
+            enumCrawler domain regexp      $$
+            removeAlreadyVisited           =$
+            removeFragmentURIs             =$
+            debugVisitNumbered stdout      =$
+            debugVisitNumbered crawlHandle =$
+            trackErrorStats                =$
+            removeBrokenWebPages           =$
+            trackPerformanceStats          =$
+            trackRepeatedMeta              =$
+            trackRepeatedTitles            =$
+            evaluateState                  =$
+            generateSitemap                =$
+            EL.map compress                =$
+            EL.map (BS.concat . toChunks)  =$
+            EB.iterHandle handle
   where
     regexp = "^https?://.*\\.noomii\\.com/[^\\.]*$"
     domain
