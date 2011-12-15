@@ -1,6 +1,3 @@
 <li>
-  <a href="$(urlTarget)">
-    (<urlStatus />) 
-    <urlText />
-  </a>
+  <a href="$(urlTarget)">(<urlStatus/>) - <urlText /></a>
 </li>

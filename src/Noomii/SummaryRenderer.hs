@@ -64,9 +64,12 @@ brokenUrlListSplice = mapSplices brokenUrlSplice . toList
 -- Renders an URL using the url_item partial
 urlSplice :: Monad m => (String, String) -> Splice m
 urlSplice (parentUrl, url) = do
-    let url' = T.pack $ url ++ "(from: " ++ parentUrl ++ ")"
+    let url' = T.pack url
+    let parentUrl' = T.pack parentUrl
     result <- callTemplate "url_item" [ ("urlTarget", url')
                                       , ("urlText", url')
+                                      , ("fromTarget", parentUrl')
+                                      , ("fromText", parentUrl')
                                       ]
     case result of
       Just tags -> return tags
