@@ -10,7 +10,7 @@ import System.Locale (defaultTimeLocale)
 import qualified Data.ByteString.Lazy.Char8 as BS
 
 --------------------
-import Data.Enumerator hiding (map)
+import Data.Enumerator hiding (map, concatMap)
 
 --------------------
 import Crawler.Enumerator
@@ -52,10 +52,22 @@ _generateSitemap _ step = return step
 
 ----------
 
+escapeURIChar :: Char -> String
+escapeURIChar c
+  | c == '&'  = "&amp;"
+  | c == '\'' = "&apos;"
+  | c == '"'  = "&quot;"
+  | c == '>'  = "&gt;"
+  | c == '<'  = "&lt;"
+  | otherwise = [c]
+
+
 wpToXml :: ByteString -> CrawlNode -> ByteString
 wpToXml lastmod (CrawlWebPage wp) =
     BS.concat [ "<url>"
-              , BS.concat ["<loc>", BS.pack $ wpURL wp, "</loc>"]
+              , BS.concat ["<loc>"
+                          , BS.pack . concatMap escapeURIChar $ wpURL wp
+                          , "</loc>"]
               , BS.concat ["<lastmod>", lastmod, "</lastmod>"]
               , "<changefreq>Weekly</changefreq>"
               , "</url>"
