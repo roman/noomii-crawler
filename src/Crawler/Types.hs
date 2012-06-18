@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Crawler.Types where
 
@@ -16,9 +17,11 @@ import Network.URI (
   , uriToString
   )
 import Data.Ord (comparing)
+import Data.Typeable (Typeable)
 
-import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.ByteString.Lazy as BL
 
 --------------------
 -- Third Party
@@ -35,6 +38,12 @@ import Pretty
 import qualified Pretty as P
 
 -------------------------------------------------------------------------------
+
+data WebPageException
+  = SpecialCharactersOnLink
+  deriving (Show, Typeable)
+
+instance Exception WebPageException
 
 data WebPage
   = WebPage {
@@ -146,8 +155,6 @@ mkWebPage uri url parentUrl links tags status headers perf e
               perf
               e
 
-
-
 getWebPageUrlString :: WebPage -> String
 getWebPageUrlString = wpURL
 
@@ -179,7 +186,7 @@ mkLink domain wholeTag = do
     return $ Link absoluteUri
                   wholeTag
 
-
+--------------------
 
 isNoFollow :: Link -> Bool
 isNoFollow = maybe False (`isInfixOf` "nofollow") .
@@ -191,3 +198,19 @@ isNoFollow = maybe False (`isInfixOf` "nofollow") .
              fromWholeTag .
              linkTag
 
+--------------------
+
+isUrlWithSpecialChar :: ByteString -> Bool
+isUrlWithSpecialChar = BC.any isSpecialChar
+  where
+    isSpecialChar :: Char -> Bool
+    isSpecialChar c = c `elem` "#' "
+
+isLinkWithSpecialChar :: Link -> Bool
+isLinkWithSpecialChar = null .
+                        filter (not . isUrlWithSpecialChar) .
+                        map (fromAttrib "href") .
+                        take 1 .
+                        dropWhile (not . isTagOpenName "a") .
+                        fromWholeTag .
+                        linkTag

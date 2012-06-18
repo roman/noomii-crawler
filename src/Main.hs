@@ -6,7 +6,6 @@ import Control.Exception (SomeException)
 ----------
 
 import Data.Configurator.Types (AutoConfig(..))
-
 import qualified Data.Configurator as Config
 
 ----------

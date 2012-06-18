@@ -37,9 +37,11 @@ import qualified Data.Enumerator.List as EL
 --------------------
 -- Local
 
+
+
 import Crawler.HTML
-import Crawler.Types
-import System.Util
+import Crawler.Types (WebPageException(..), WebPage, mkWebPage, mkLink, isLinkWithSpecialChar)
+import System.Util (trackPerformance)
 
 -------------------------------------------------------------------------------
 
@@ -91,18 +93,22 @@ requestWebPage fromUrl url = liftIO $ withManager $ \manager ->
             let tags =  canonicalizeTags $ parseTags body
             let links = mapMaybe (mkLink uri) $
                         wholeTags "a" tags
+            let buildWp = mkWebPage uri
+                                    url
+                                    fromUrl
+                                    links
+                                    tags
+                                    status
+                                    headers
+                                    (Just perf)
 
 
-            -- Return a valid WebPage
-            return . Right $ mkWebPage uri
-                                       url
-                                       fromUrl
-                                       links
-                                       tags
-                                       status
-                                       headers
-                                       (Just perf)
-                                       Nothing
+            if any isLinkWithSpecialChar links
+              then
+                return . Right $ buildWp (Just $ toException SpecialCharactersOnLink)
+              else
+                -- Return a valid WebPage
+                return . Right $ buildWp Nothing
 
 
 responseIt :: Monad m
