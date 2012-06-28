@@ -13,9 +13,9 @@ import qualified Data.ByteString.Lazy.Char8 as BS
 import Data.Enumerator hiding (map, concatMap)
 
 --------------------
-import Crawler.Enumerator
-import Crawler.Types
-import Navigation.Types
+import Crawler.Enumerator (CrawlNode(..))
+import Crawler.Types (wpURL)
+import Navigation.Types (NavEvent, nvVal)
 
 -------------------------------------------------------------------------------
 

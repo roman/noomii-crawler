@@ -9,7 +9,6 @@ import Control.Category ((.))
 import Control.Monad.Trans (MonadIO(..))
 import System.IO (
     IOMode(WriteMode)
-  , stdout
   , withFile
   )
 
@@ -24,11 +23,17 @@ import qualified Data.Enumerator.Binary as EB
 
 ----------
 
-import Crawler.Enumerator
-import Navigation.Enumerator
-import Noomii.Enumeratees
-import Noomii.Monad
-import Noomii.Types
+import Crawler.Enumerator (enumCrawler, removeFragmentURIs, removeBrokenWebPages)
+import Navigation.Enumerator (removeAlreadyVisited, debugVisitNumbered)
+import Noomii.Enumeratees (
+    trackErrorStats
+  , trackRepeatedMeta
+  , trackRepeatedTitles
+  , trackPerformanceStats
+  , generateSitemap
+  , evaluateState)
+import Noomii.Monad (execNoomiiMonad)
+import Noomii.Types (NoomiiState(..))
 
 -------------------------------------------------------------------------------
 
@@ -43,7 +48,6 @@ crawlNoomii env =
             enumCrawler domain regexp      $$
             removeAlreadyVisited           =$
             removeFragmentURIs             =$
-            debugVisitNumbered stdout      =$
             debugVisitNumbered crawlHandle =$
             trackErrorStats                =$
             removeBrokenWebPages           =$

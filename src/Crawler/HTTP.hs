@@ -37,10 +37,13 @@ import qualified Data.Enumerator.List as EL
 --------------------
 -- Local
 
-
-
-import Crawler.HTML
-import Crawler.Types (WebPageException(..), WebPage, mkWebPage, mkLink, isLinkWithSpecialChar)
+import Crawler.HTML (wholeTags)
+import Crawler.Types (
+    WebPageException(..)
+  , WebPage
+  , mkWebPage
+  , mkLink
+  , isLinkWithSpecialChar)
 import System.Util (trackPerformance)
 
 -------------------------------------------------------------------------------
@@ -65,7 +68,8 @@ requestWebPage fromUrl url = liftIO $ withManager $ \manager ->
                     []
                     Nothing
                     (Just .
-                      toException $
+                      toException .
+                      HttpError $
                       InvalidUrlException url "invalid URL")
 
       Just uri -> do
@@ -87,7 +91,9 @@ requestWebPage fromUrl url = liftIO $ withManager $ \manager ->
                                        statusBadRequest
                                        []
                                        (Just perf)
-                                       (Just e)
+                                       (Just .
+                                         toException .
+                                         HttpError $ e)
 
           Right (status, headers, body) -> do
             let tags =  canonicalizeTags $ parseTags body
@@ -103,12 +109,17 @@ requestWebPage fromUrl url = liftIO $ withManager $ \manager ->
                                     (Just perf)
 
 
-            if any isLinkWithSpecialChar links
+            let links' = filter isLinkWithSpecialChar links
+            if null links'
               then
-                return . Right $ buildWp (Just $ toException SpecialCharactersOnLink)
-              else
                 -- Return a valid WebPage
-                return . Right $ buildWp Nothing
+                return .
+                  Right $
+                  buildWp Nothing
+              else do
+                return .
+                  Right $
+                  buildWp (Just $ toException $ SpecialCharactersOnLink links')
 
 
 responseIt :: Monad m

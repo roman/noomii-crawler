@@ -19,10 +19,10 @@ import qualified Data.Enumerator.List as EL
 --------------------
 -- Local
 
-import Crawler.HTTP
-import Crawler.Types
-import Navigation.Enumerator
-import Pretty
+import Crawler.HTTP  (requestWebPage)
+import Crawler.Types (WebPage, getWebPageUrlString, wpError, wpURL, getFollowLinks)
+import Navigation.Enumerator (NavEvent(..), enumNavigation)
+import Pretty (Pretty(..))
 
 -------------------------------------------------------------------------------
 -- Types
@@ -94,6 +94,7 @@ enumCrawler link0 regexp step = Iteratee $ do
 
 --------------------
 
+-- Rejects from the stream Web Pages that had an Error
 removeBrokenWebPages :: Monad m => Enumeratee (NavEvent CrawlNode)
                                               (NavEvent CrawlNode)
                                               m
@@ -105,6 +106,7 @@ removeBrokenWebPages = EL.filter (notBroken . nvVal)
 
 --------------------
 
+-- Rejects from the stream Web pages that contain the char '#' in its url
 removeFragmentURIs :: MonadIO m
                    => Enumeratee
                       (NavEvent CrawlNode)

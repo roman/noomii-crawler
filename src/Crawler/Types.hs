@@ -16,6 +16,7 @@ import Network.URI (
   , nonStrictRelativeTo
   , uriToString
   )
+import Data.List (intercalate)
 import Data.Ord (comparing)
 import Data.Typeable (Typeable)
 
@@ -33,14 +34,15 @@ import Text.HTML.TagSoup (Tag(..), isTagOpenName, fromAttrib)
 --------------------
 -- Local
 
-import Crawler.URI
-import Pretty
+import Crawler.URI (isSameDomain)
+import Pretty (Pretty(..), Doc, (<+>), (<>))
 import qualified Pretty as P
 
 -------------------------------------------------------------------------------
 
 data WebPageException
-  = SpecialCharactersOnLink
+  = SpecialCharactersOnLink [Link]
+  | HttpError HttpException
   deriving (Show, Typeable)
 
 instance Exception WebPageException
@@ -63,6 +65,7 @@ data Link
     linkURI :: URI
   , linkTag :: WholeTag ByteString
   }
+  deriving (Show)
 
 newtype WholeTag s
   = WholeTag {
@@ -95,12 +98,19 @@ showGoodWebPage url perf status =
 instance Pretty WebPage where
   prettyDoc (WebPage _ url parentUrl _ _ status _ perf0 (Just e))
     = case fromException e of
-        Just (InvalidUrlException _ msg) ->
+        Just (HttpError (InvalidUrlException _ msg)) ->
           showBadWebPage url parentUrl msg perf status
-        Just (TooManyRedirects) ->
+        Just (HttpError (TooManyRedirects)) ->
           showBadWebPage url parentUrl "too many redirects" perf status
-        Just (HttpParserException _) ->
+        Just (HttpError (HttpParserException _)) ->
           showBadWebPage url parentUrl "http parse error" perf status
+        Just (SpecialCharactersOnLink links) ->
+          showBadWebPage url
+                         parentUrl
+                         ("contains bad formatted url => " ++
+                          (intercalate "\n" $ map (show . linkURI) links))
+                         perf
+                         status
         Just _ ->
           showBadWebPage url parentUrl "status code error" perf status
         Nothing ->
@@ -204,7 +214,7 @@ isUrlWithSpecialChar :: ByteString -> Bool
 isUrlWithSpecialChar = BC.any isSpecialChar
   where
     isSpecialChar :: Char -> Bool
-    isSpecialChar c = c `elem` "#' "
+    isSpecialChar c = c `elem` "' "
 
 isLinkWithSpecialChar :: Link -> Bool
 isLinkWithSpecialChar = null .
