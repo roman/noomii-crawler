@@ -4,17 +4,37 @@
 module Pretty (
     Pretty (..)
   , PrettyElem (..)
-  , redColor
-  , greenColor
-  , yellowColor
-  , blueColor
-  , purpleColor
+
   , red
+  , redBold
+  , redForeground
+  , redBlink
+  , redUnderline
+
   , green
+  , greenBold
+  , greenForeground
+  , greenBlink
+  , greenUnderline
+
   , yellow
+  , yellowBold
+  , yellowForeground
+  , yellowBlink
+  , yellowUnderline
+
   , blue
+  , blueBold
+  , blueForeground
+  , blueBlink
+  , blueUnderline
+
   , purple
-  , resetColor
+  , purpleBold
+  , purpleForeground
+  , purpleBlink
+  , purpleUnderline
+
   , module Text.PrettyPrint
   ) where
 
@@ -23,45 +43,87 @@ import qualified Text.PrettyPrint as P
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
+--------------------
 
-redColor :: Doc
-redColor = P.text "\x1B[31m"
+redColor :: P.Doc
+redColor = P.text "\x1B[31"
 
-greenColor :: Doc
-greenColor = P.text "\x1B[32m"
+greenColor :: P.Doc
+greenColor = P.text "\x1B[32"
 
-yellowColor :: Doc
-yellowColor = P.text "\x1B[33m"
+yellowColor :: P.Doc
+yellowColor = P.text "\x1B[33"
 
-blueColor :: Doc
-blueColor = P.text "\x1B[34m"
+blueColor :: P.Doc
+blueColor = P.text "\x1B[34"
 
-purpleColor :: Doc
-purpleColor = P.text "\x1B[35m"
+purpleColor :: P.Doc
+purpleColor = P.text "\x1B[35"
 
-resetColor :: Doc
+resetColor :: P.Doc
 resetColor = P.text "\x1B[0m"
 
-red :: Doc -> Doc
-red p = redColor <> p <> resetColor
+plainCode :: P.Doc
+plainCode = P.text "m"
 
-green :: Doc -> Doc
-green p = greenColor <> p <> resetColor
+blinkCode :: P.Doc
+blinkCode = P.text ";5m"
 
-yellow :: Doc -> Doc
-yellow p = yellowColor <> p <> resetColor
+foregroundCode :: P.Doc
+foregroundCode = P.text ";7m"
 
-blue :: Doc -> Doc
-blue p = blueColor <> p <> resetColor
+boldCode :: P.Doc
+boldCode = P.text ";1m"
 
-purple :: Doc -> Doc
-purple p = purpleColor <> p <> resetColor
+underlineCode :: P.Doc
+underlineCode = P.text ";4m"
 
+
+red, redBold, redForeground, redBlink, redUnderline :: P.Doc -> P.Doc
+red p = redColor <> plainCode <> p <> resetColor
+redBold p = redColor <> boldCode <> p <> resetColor
+redForeground p = redColor <> foregroundCode <> p <> resetColor
+redBlink p = redColor <> blinkCode <> p <> resetColor
+redUnderline p = redColor <> underlineCode <> p <> resetColor
+
+green, greenBold, greenForeground, greenBlink, greenUnderline :: P.Doc -> P.Doc
+green p = greenColor <> plainCode <> p <> resetColor
+greenBold p = greenColor <> boldCode <> p <> resetColor
+greenForeground p = greenColor <> foregroundCode <> p <> resetColor
+greenBlink p = greenColor <> blinkCode <> p <> resetColor
+greenUnderline p = greenColor <> underlineCode <> p <> resetColor
+
+yellow, yellowBold, yellowForeground, yellowBlink, yellowUnderline :: P.Doc -> P.Doc
+yellow p = yellowColor <> plainCode <> p <> resetColor
+yellowBold p = yellowColor <> boldCode <> p <> resetColor
+yellowForeground p = yellowColor <> foregroundCode <> p <> resetColor
+yellowBlink p = yellowColor <> blinkCode <> p <> resetColor
+yellowUnderline p = yellowColor <> underlineCode <> p <> resetColor
+
+blue, blueBold, blueForeground, blueBlink, blueUnderline :: P.Doc -> P.Doc
+blue p = blueColor <> plainCode <> p <> resetColor
+blueBold p = blueColor <> boldCode <> p <> resetColor
+blueForeground p = blueColor <> foregroundCode <> p <> resetColor
+blueBlink p = blueColor <> blinkCode <> p <> resetColor
+blueUnderline p = blueColor <> underlineCode <> p <> resetColor
+
+purple, purpleBold, purpleForeground, purpleBlink, purpleUnderline :: P.Doc -> P.Doc
+purple p = purpleColor <> plainCode <> p <> resetColor
+purpleBold p = purpleColor <> boldCode <> p <> resetColor
+purpleForeground p = purpleColor <> foregroundCode <> p <> resetColor
+purpleBlink p = purpleColor <> blinkCode <> p <> resetColor
+purpleUnderline p = purpleColor <> underlineCode <> p <> resetColor
+
+--------------------
 
 class Pretty a where
   prettyShow :: a -> String
-  prettyShow = render . prettyDoc
-  prettyDoc  :: a -> Doc
+  prettyShow = P.render . prettyDoc
+
+  prettyStyle :: P.Style -> a -> String
+  prettyStyle st = P.renderStyle st . prettyDoc
+
+  prettyDoc :: a -> P.Doc
 
 data PrettyElem
   = forall a. Pretty a => PrettyElem a
@@ -82,7 +144,7 @@ instance Pretty a => Pretty (Maybe a) where
   prettyDoc (Just a) = prettyDoc a
   prettyDoc Nothing  = P.empty
 
-tupleDoc :: [PrettyElem] -> Doc
+tupleDoc :: [PrettyElem] -> P.Doc
 tupleDoc = P.parens .
            P.sep .
            P.punctuate P.comma .
@@ -106,7 +168,11 @@ instance (Pretty a, Pretty b, Pretty c, Pretty d) => Pretty (a, b, c, d) where
              , PrettyElem d
              ]
 
-instance (Pretty a, Pretty b, Pretty c, Pretty d, Pretty e) => Pretty (a, b, c, d, e) where
+instance (Pretty a
+         , Pretty b
+         , Pretty c
+         , Pretty d
+         , Pretty e) => Pretty (a, b, c, d, e) where
   prettyDoc (a, b, c, d, e) =
     tupleDoc [ PrettyElem a
              , PrettyElem b
