@@ -3,16 +3,17 @@ module Noomii.EmailNotification (sendEmailWithStats) where
 
 ----------
 
-import Network.HaskellNet.Auth
-import Network.HaskellNet.SMTP
+import System.IO (hSetEncoding, stdout, utf8)
+import Network.HaskellNet.Auth (AuthType(LOGIN))
+import Network.HaskellNet.SMTP (Command(AUTH), doSMTP, sendCommand, sendMimeMail)
 
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as T
 
 ----------
 
-import Noomii.SummaryRenderer
-import Noomii.Types
+import Noomii.SummaryRenderer (renderSummary)
+import Noomii.Types (NoomiiState)
 
 sendEmailWithStats :: String
                    -> String
@@ -24,6 +25,7 @@ sendEmailWithStats user pass site state =
       putStrLn "Rendering the crawl summary..."
       summary <- renderSummary state
       let lazySummary = T.fromChunks [summary]
+      hSetEncoding stdout utf8
       T.putStrLn summary
       putStrLn "* Authenticating SMTP"
       sendCommand smtp (AUTH LOGIN user pass) >>= print
