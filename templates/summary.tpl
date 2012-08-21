@@ -1,5 +1,15 @@
 <h1>Summary</h1>
 
+<div class="number-of-pages-summary">
+  <ul>
+    <li># Of pages with broken links: <brokenPagesCount/></li>
+    <li># Of pages with repeated titles: <pagesWithRepeatedTitlesCount/></li>
+    <li># Of pages with repeated meta: <pagesWithRepeatedMetaCount/></li>
+    <li># Of pages with no titles: <noTitlePagesCount/></li>
+    <li># Of pages with no meta: <noMetaPagesCount/></li>
+  </ul>
+</div>
+
 <div class="response-times">
   <h2>Response times</h2>
   <ul>
@@ -10,7 +20,7 @@
 
 <div class="broken-pages-section">
   <h2>Pages that have broken URLs</h2>
-  <brokenPagesCount/>
+  <p>Page count: <brokenPagesCount/></p>
   <brokenPages/>
 </div>
 
