@@ -25,13 +25,23 @@ import qualified Data.Text.Encoding as T
 
 --------------------
 
-import Noomii.Types
+import Noomii.Types (Pretty(..), PerformanceStat, NoomiiState, minPerformance, 
+                     performanceStats, maxPerformance, splitNoTitleUrls, splitNoMetaUrls, 
+                     errorMap)
+
 
 -------------------------------------------------------------------------------
 
 -- Renders with Pretty instance
 prettySplice :: (Monad m, Pretty p) => p -> Splice m
 prettySplice = textSplice . T.pack . prettyShow
+
+
+countSplice :: (Monad m, Show a) => [a] -> Splice m
+countSplice = textSplice . T.pack . show . length
+
+seqCountSplice :: (Monad m, Show a) => Seq (a, a) -> Splice m
+seqCountSplice = countSplice . toList
 
 --------------------
 
@@ -190,11 +200,16 @@ renderSummary noomiiState = do
 
     errors = Map.toList $ getL errorMap noomiiState
 
-    splices = [ ("pagesWithRepeatedTitles", repeatedTitleListSplice titles)
+    splices = [ ("pagesWithRepeatedTitlesCount", countSplice titles)
+              , ("pagesWithRepeatedTitles", repeatedTitleListSplice titles)
+              , ("pagesWithRepeatedMetaCount", countSplice meta)
               , ("pagesWithRepeatedMeta", repeatedMetaListSplice meta)
+              , ("noTitlePagesCount", seqCountSplice noTitleUrls)
               , ("noTitlePages", urlListSplice noTitleUrls)
+              , ("noMetaPagesCount", seqCountSplice noMetaUrls)
               , ("noMetaPages", urlListSplice noMetaUrls)
               , ("minResponseTime", minPerfSplice noomiiState)
               , ("maxResponseTime", maxPerfSplice noomiiState)
+              , ("brokenPagesCount", countSplice errors)
               , ("brokenPages", urlErrorsListSplice errors)]
 
