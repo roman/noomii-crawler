@@ -74,28 +74,28 @@ brokenUrlListSplice = mapSplices brokenUrlSplice . toList
 -- Renders an URL using the url_item partial
 urlSplice :: Monad m => (String, String) -> Splice m
 urlSplice (parentUrl, url) = do
-    let url' = T.pack url
-    let parentUrl' = T.pack parentUrl
+    let url' = textSplice $ T.pack url
+        parentUrl' = textSplice $ T.pack parentUrl
     result <- callTemplate "url_item" [ ("urlTarget", url')
                                       , ("urlText", url')
                                       , ("fromTarget", parentUrl')
                                       , ("fromText", parentUrl')
                                       ]
     case result of
-      Just tags -> return tags
-      Nothing -> error "Error rendering url_item"
+      tags -> return tags
+      [] -> error "Error rendering url_item"
 
 --------------------
 
 brokenUrlSplice :: Monad m => (Status, String) -> Splice m
 brokenUrlSplice (status, url) = do
     result <- callTemplate "broken_url_item"
-                           [ ("urlTarget", T.pack url)
-                           , ("urlText", T.pack url)
-                           , ("urlStatus", T.pack $ show status)]
+                           [ ("urlTarget", textSplice $ T.pack url)
+                           , ("urlText", textSplice $ T.pack url)
+                           , ("urlStatus", textSplice $ T.pack $ show status)]
     case result of
-      Just tags -> return tags
-      Nothing -> error "Error rendering broken_url_item"
+      tags -> return tags
+      [] -> error "Error rendering broken_url_item"
 
 --------------------
 
@@ -108,8 +108,8 @@ repeatedTitleSplice title urls =
     localTS bindSplices' $ do
       result <- callTemplate "pages_with_title" []
       case result of
-        Just tags -> return tags
-        Nothing -> error "Check the name of the template"
+        tags -> return tags
+        [] -> error "Check the name of the template"
   where
     bindSplices' =
       bindSplices [("pageTitle", textSplice $ T.decodeUtf8 title),
@@ -126,8 +126,8 @@ repeatedMetaSplice desc urls =
     localTS bindSplices' $ do
       result <- callTemplate "pages_with_meta" []
       case result of
-        Just tags -> return tags
-        Nothing -> error "Check the name of the template"
+        tags -> return tags
+        [] -> error "Check the name of the template"
   where
     bindSplices' =
       bindSplices [("pageMetaDescription", textSplice $ T.decodeUtf8 desc),
@@ -143,8 +143,8 @@ urlErrorSplice parentURL urls =
     localTS bindSplices' $ do
       result <- callTemplate "broken_page" []
       case result of
-        Just tags -> return tags
-        Nothing -> error "Check the name of the template"
+        tags -> return tags
+        [] -> error "Check the name of the template"
   where
     bindSplices' =
       bindSplices [ ("fromUrl", textSplice $ T.pack parentURL)

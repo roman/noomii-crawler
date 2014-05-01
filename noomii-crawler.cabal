@@ -57,30 +57,38 @@ Executable noomii-crawler
 
   -- Packages needed in order to build this package.
   Build-depends:
-    attoparsec-enumerator < 0.3,
+    attoparsec-enumerator,
     base,
     blaze-builder,
     bytestring,
-    configurator == 0.1.0.0,
+    configurator,
     containers,
     data-lens,
     data-lens-template,
     enumerator,
     HaskellNet,
-    heist <= 0.6.0.1,
-    http-enumerator,
+    hashable,
     http-types,
-    mime-mail <= 0.3.0.3,
+    mime-mail,
     mtl,
     network,
     old-locale,
-    pretty <= 1.0.1.2,
+    pretty,
     regex-pcre,
     tagsoup,
     text,
     time,
     xmlhtml,
-    zlib
+    zlib,
+
+    xmlhtml             == 0.1.5.3,
+    aeson               == 0.6.2.1,
+    http-enumerator     == 0.7.3.4,
+    heist               == 0.7.0.2,
+    tls-extra           == 0.4.0,
+    crypto-pubkey-types == 0.1.1,
+    cryptocipher        == 0.2.14,
+    base64-bytestring   >=0.1 && <0.2
 
 
   -- Modules not exported by this package.

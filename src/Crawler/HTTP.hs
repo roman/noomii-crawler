@@ -25,7 +25,7 @@ import Network.HTTP.Enumerator (
   , parseUrl
   , httpRedirect
   )
-import Network.HTTP.Types (Status(..), ResponseHeaders, statusBadRequest)
+import Network.HTTP.Types (Status(..), ResponseHeaders, badRequest400)
 import Text.HTML.TagSoup (
     parseTags
   , canonicalizeTags
@@ -64,7 +64,7 @@ requestWebPage fromUrl url = liftIO $ withManager $ \manager ->
                     fromUrl
                     []
                     []
-                    statusBadRequest
+                    badRequest400
                     []
                     Nothing
                     (Just .
@@ -88,7 +88,7 @@ requestWebPage fromUrl url = liftIO $ withManager $ \manager ->
                                        fromUrl
                                        []
                                        []
-                                       statusBadRequest
+                                       badRequest400
                                        []
                                        (Just perf)
                                        (Just .

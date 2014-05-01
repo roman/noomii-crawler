@@ -1,6 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Pretty (
     Pretty (..)
   , PrettyElem (..)

@@ -1,4 +1,7 @@
 *.swp
+.cabal-sandbox
+cabal.sandbox.config
+.setup
 cabal-dev/
 dist/
 log/
